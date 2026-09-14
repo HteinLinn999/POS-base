@@ -4,18 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:admin": "pnpm --filter pos-admin-web dev",
+    "dev:backend": "pnpm --filter pos-backend start:dev",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "12.4.1",
-      "onFail": "download"
-    }
-  },
+  
   "packageManager": "pnpm@12.4.1",
   "type": "module"
 }
