@@ -72,15 +72,35 @@ apps/
       main.ts
     test/
       app.e2e-spec.ts
+    .oxlintrc.json
     .prettierrc
     nest-cli.json
-    oxlint.json
     package.json
     README.md
     tsconfig.build.json
     tsconfig.json
     vitest.config.e2e.ts
     vitest.config.ts
+  pos-mobile/
+    .claude/
+      settings.json
+    assets/
+      android-icon-background.png
+      android-icon-foreground.png
+      android-icon-monochrome.png
+      favicon.png
+      icon.png
+      splash-icon.png
+    .gitignore
+    AGENTS.md
+    App.js
+    app.json
+    CLAUDE.md
+    index.js
+    LICENSE
+    package.json
+  .npmrc
+.gitignore
 package.json
 pnpm-workspace.yaml
 </directory_structure>
@@ -865,6 +885,19 @@ describe('AppController (e2e)', () => {
 });
 </file>
 
+<file path="apps/pos-backend/.oxlintrc.json">
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/rules.rs",
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-floating-promises": "warn"
+  },
+  "env": {
+    "node": true
+  }
+}
+</file>
+
 <file path="apps/pos-backend/.prettierrc">
 {
   "singleQuote": true,
@@ -879,19 +912,6 @@ describe('AppController (e2e)', () => {
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true
-  }
-}
-</file>
-
-<file path="apps/pos-backend/oxlint.json">
-{
-  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/rules.rs",
-  "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-floating-promises": "warn"
-  },
-  "env": {
-    "node": true
   }
 }
 </file>
@@ -1130,6 +1150,184 @@ export default defineConfig({
 });
 </file>
 
+<file path="apps/pos-mobile/.claude/settings.json">
+{
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true
+  }
+}
+</file>
+
+<file path="apps/pos-mobile/.gitignore">
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+</file>
+
+<file path="apps/pos-mobile/AGENTS.md">
+# Expo HAS CHANGED
+
+Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+</file>
+
+<file path="apps/pos-mobile/App.js">
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+
+export default function App() {
+  return (
+    <View style={styles.container}>
+      <Text>Open up App.js to start working on your app!</Text>
+      <StatusBar style="auto" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+</file>
+
+<file path="apps/pos-mobile/app.json">
+{
+  "expo": {
+    "name": "pos-mobile",
+    "slug": "pos-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
+</file>
+
+<file path="apps/pos-mobile/CLAUDE.md">
+@AGENTS.md
+</file>
+
+<file path="apps/pos-mobile/index.js">
+import { registerRootComponent } from 'expo';
+
+import App from './App';
+
+// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
+// It also ensures that whether you load the app in Expo Go or in a native build,
+// the environment is set up appropriately
+registerRootComponent(App);
+</file>
+
+<file path="apps/pos-mobile/LICENSE">
+The MIT License (MIT)
+
+Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="apps/pos-mobile/package.json">
+{
+  "name": "pos-mobile",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "expo": "~57.0.22",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}
+</file>
+
+<file path="apps/.npmrc">
+public-hoist-pattern[]=*eslint-plugin*
+public-hoist-pattern[]=*prettier-plugin*
+public-hoist-pattern[]=@types/*
+</file>
+
+<file path=".gitignore">
+node_modules
+</file>
+
 <file path="package.json">
 {
   "name": "simple-pos-app",
@@ -1137,18 +1335,17 @@ export default defineConfig({
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:admin": "pnpm --filter pos-admin-web dev",
+    "dev:backend": "pnpm --filter pos-backend start:dev",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "12.4.1",
-      "onFail": "download"
-    }
-  },
+  
   "packageManager": "pnpm@12.4.1",
   "type": "module"
 }
@@ -1156,7 +1353,7 @@ export default defineConfig({
 
 <file path="pnpm-workspace.yaml">
 packages: 
-  - 'app/*'
+  - 'apps/*'
   - 'packages/*'
 </file>
 
