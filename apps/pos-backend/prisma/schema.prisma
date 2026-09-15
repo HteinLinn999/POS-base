@@ -1,0 +1,98 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ၁။ ဝန်ထမ်းများ (RBAC စနစ်)
+enum UserRole {
+  ADMIN
+  CASHIER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      UserRole @default(CASHIER)
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+// ၂။ ကုန်ပစ္စည်း အမျိုးအစား
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+// ၃။ ရောင်းချသည့်ပုံစံ
+enum SaleType {
+  UNIT
+  WEIGHT
+}
+
+// ၄။ City Mart စံပြ ကုန်ပစ္စည်း Table
+model Product {
+  id                String            @id @default(uuid())
+  name              String
+  barcode           String            @unique // စက်ပြင် Barcode ဖတ်ရန် Unique ထားရမည်
+  sku               String            @unique
+  price             Float // ရောင်းဈေး
+  cost              Float // ရင်းဈေး (အမြတ်တွက်ရန်)
+  stockQuantity     Float             @default(0) // WEIGHT အတွက် ဒသမပါနိုင်၍ Float သုံးသည်
+  saleType          SaleType          @default(UNIT)
+  unitOfMeasurement String // Pcs, Kg, Pack
+  isAlcohol         Boolean           @default(false)
+  expiryDate        DateTime? // သက်တမ်းကုန်မည့်ရက်
+  categoryId        String
+  category          Category          @relation(fields: [categoryId], references: [id])
+  orderItems        OrderItem[]
+  stockHistories    StockHistory[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+// ၅။ ပစ္စည်းအဝင်/အထွက် စာရင်း (Inventory Tracking)
+enum StockTransactionType {
+  STOCK_IN // ပစ္စည်းအသစ်ဝင်ခြင်း
+  STOCK_OUT // ရောင်းထွက်ခြင်း
+  ADJUSTMENT // စာရင်းစစ်ပြီး အတိုးအလျှော့လုပ်ခြင်း
+}
+
+model StockHistory {
+  id              String               @id @default(uuid())
+  productId       String
+  product         Product              @relation(fields: [productId], references: [id])
+  quantity        Float
+  transactionType StockTransactionType
+  reason          String? // ဥပမာ - "ဝယ်သူဝယ်ယူမှု" သို့မဟုတ် "အလှူ"
+  createdAt       DateTime             @default(now())
+}
+
+// ၆။ အရောင်းဘောက်ချာ (Invoices)
+model Order {
+  id            String      @id @default(uuid())
+  totalAmount   Float
+  cashReceived  Float
+  changeGiven   Float
+  paymentMethod String // Cash, KPay, Wave
+  cashierId     String
+  cashier       User        @relation(fields: [cashierId], references: [id])
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+}
+
+// ၇။ ဘောက်ချာတစ်ခုချင်းစီ၏ အသေးစိတ် ပစ္စည်းစာရင်း
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Float
+  unitPrice Float // ထိုအချိန်က ရောင်းလိုက်သည့် ဈေးနှုန်း
+}
