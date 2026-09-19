@@ -136,8 +136,10 @@ packages/
         product.dto.ts
       enums/
         sale-type.enum.ts
+        user-role.enum.ts
+      interfaces/
+        product.interface.ts
       index.ts
-    index.ts
     package.json
     tsconfig.json
 .gitignore
@@ -4820,42 +4822,16 @@ export enum SaleType {
 }
 </file>
 
-<file path="packages/shared-types/src/index.ts">
-export * from "./enums/sale-type.enum.js";
-export * from "./dto/product.dto.js";
-</file>
-
-<file path="packages/shared-types/index.ts">
-// export enum SaleType {
-//   UNIT = 'UNIT',
-//   WEIGHT = 'WEIGHT'
-// }
-
-// export interface ICreateProductDto {
-//   name: string;
-//   barcode: string; // Barcode Scanner အတွက် မပါမဖြစ် Field
-//   sku: string;
-//   price: number;
-//   cost: number;
-//   stockQuantity: number;
-//   saleType: SaleType;
-//   unitOfMeasurement: string; // Pcs, Kg
-//   categoryId: string;
-// }
-
-// ရာထူးအလိုက် ခွဲခြားရန် User Roles
+<file path="packages/shared-types/src/enums/user-role.enum.ts">
 export enum UserRole {
   ADMIN = 'ADMIN',
   CASHIER = 'CASHIER'
 }
+</file>
 
-// ကုန်ပစ္စည်း ရောင်းချသည့်ပုံစံ
-export enum SaleType {
-  UNIT = 'UNIT',     // မုန့်၊ အချိုရည် (အရေအတွက်)
-  WEIGHT = 'WEIGHT'  // အသား၊ ငါး၊ ဟင်းသီးဟင်းရွက် (အလေးချိန်)
-}
+<file path="packages/shared-types/src/interfaces/product.interface.ts">
+import { SaleType } from '../enums/sale-type.enum.js';
 
-// City Mart Product Interface
 export interface IProduct {
   id: string;
   name: string;
@@ -4969,6 +4945,13 @@ node-linker=hoisted
   },
   "private": true
 }
+</file>
+
+<file path="packages/shared-types/src/index.ts">
+export * from "./enums/sale-type.enum.js";
+export * from "./enums/user-role.enum.js"; 
+export * from "./dto/product.dto.js";
+export * from "./interfaces/product.interface.js";
 </file>
 
 <file path=".gitignore">
