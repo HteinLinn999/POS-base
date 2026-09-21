@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ProductsService } from './products.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SaleType } from '@prisma/client';
+import { SaleType } from '@pos/shared-types';
 import { CreateProductDto } from './dto/create-product.dto.js';
 
 describe('ProductsService <-> Prisma DB (Integration Test)', () => {
@@ -36,7 +36,7 @@ describe('ProductsService <-> Prisma DB (Integration Test)', () => {
       saleType: SaleType.UNIT,
       unitOfMeasurement: 'Pcs',
       categoryId: testCategory.id,
-    }as CreateProductDto;
+    } as CreateProductDto;
 
     // 🔴 လက်ရှိတွင် ProductsService မရှိသေးသဖြင့် ဤနေရာတွင် Call လုပ်လျှင် သေချာပေါက် FAIL ဖြစ်ပါမည်
     const savedProduct = await service.createProduct(mockProductData);
