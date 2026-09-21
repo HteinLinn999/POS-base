@@ -1,7 +1,13 @@
-packages: 
-  - 'apps/*'
-  - 'packages/*'
+packages:
+  - "apps/*"
+  - "packages/*"
 allowBuilds:
+  "@prisma/engines": false
   esbuild: true
   msgpackr-extract: true
+  prisma: false
   workerd: true
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "prisma"
+  - "@prisma/client"
