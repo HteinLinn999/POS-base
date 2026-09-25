@@ -1,122 +1,248 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useRef, useEffect } from 'react';
+import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import {
+  IconBarcode,
+  IconShoppingCart,
+  IconReceipt,
+  IconMenu2,
+  IconPalette,
+  IconBox,
+  IconHistory,
+  IconUser
+} from '@tabler/icons-react';
+import { SaleType } from '@pos/shared-types';
+import { useCartStore } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+interface IThemeConfig {
+  id: string;
+  name: string;
+  bg: string;
+  panel: string;
+  border: string;
+  primaryText: string;
+  badgeColor: string;
+  inputBg: string;
 }
 
-export default App
+const POS_THEMES: IThemeConfig[] = [
+  { id: 'midnight', name: 'Midnight Dark 🌙', bg: 'bg-[#16171d]', panel: 'bg-[#1f2028]', border: 'border-[#2e303a]', primaryText: 'text-[#00d8ff]', badgeColor: 'cyan', inputBg: '#1f2028' },
+  { id: 'emerald', name: 'Clean Emerald 🧼', bg: 'bg-[#0f172a]', panel: 'bg-[#1e293b]', border: 'border-[#334155]', primaryText: 'text-[#10b981]', badgeColor: 'teal', inputBg: '#1e293b' },
+  { id: 'ocean', name: 'Ocean Cyan 💎', bg: 'bg-[#0c4a6e]', panel: 'bg-[#0284c7]', border: 'border-[#38bdf8]', primaryText: 'text-[#e0f2fe]', badgeColor: 'blue', inputBg: '#0284c7' },
+  { id: 'amber', name: 'Cyberpunk Amber 🔥', bg: 'bg-[#1a1105]', panel: 'bg-[#261a0c]', border: 'border-[#402e12]', primaryText: 'text-[#f59e0b]', badgeColor: 'orange', inputBg: '#261a0c' },
+  { id: 'amethyst', name: 'Royal Amethyst 🍇', bg: 'bg-[#1e1b4b]', panel: 'bg-[#312e81]', border: 'border-[#4338ca]', primaryText: 'text-[#a78bfa]', badgeColor: 'grape', inputBg: '#312e81' }
+];
+
+function App() {
+  const [barcode, setBarcode] = useState<string>('');
+
+  //default theme
+  const [activeTheme, setActiveTheme] = useState<IThemeConfig>(POS_THEMES[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode } = useCartStore();
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleBarcodeSubmit = async (e: React.FormEvent) => {
+    //const handleBarcodeSubmit = async (e: React.ChangeEvent) => {
+    e.preventDefault();
+    if (!barcode.trim()) return;
+
+    try {
+      await addItemByBarcode(barcode);
+      notifications.show({
+        title: 'ပစ္စည်း ထည့်ပြီးပါပြီ',
+        message: `Barcode: ${barcode} အား ခြင်းတောင်းထဲ ထည့်သွင်းအောင်မြင်သည်`,
+        color: 'teal',
+        icon: <IconShoppingCart size={16} />,
+      });
+    } catch (error: any) {
+      notifications.show({
+        title: 'အရောင်းအမှား',
+        message: error.message,
+        color: 'red',
+        icon: <IconBarcode size={16} />,
+      });
+    }
+
+    setBarcode('');
+  };
+
+  const grandTotal = cartItems.reduce((sum: number, item) => sum + item.total, 0);
+
+  return (
+    <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
+      <nav
+        className={`${activeTheme.panel} flex h-full shrink-0 flex-col items-center gap-6 overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'
+          }`}
+        aria-hidden={!isLeftNavOpen}
+      >
+        <div className="flex h-10 w-full items-center justify-start gap-3 overflow-hidden px-2">
+          <IconReceipt size={32} className={activeTheme.primaryText} />
+          <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
+        </div>
+
+        <div className="mt-4 flex w-full flex-col gap-2">
+          <Button variant="light" color="cyan" size="md" className="h-12 w-full justify-start" leftSection={<IconShoppingCart size={22} />}>
+            <span className="text-base font-medium">အရောင်းကောင်တာ</span>
+          </Button>
+
+          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconBox size={22} />}>
+            <span className="text-base font-medium">ပစ္စည်းအဝင်/အထွက်</span>
+          </Button>
+
+          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconHistory size={22} />}>
+            <span className="text-base font-medium">အရောင်းမှတ်တမ်း</span>
+          </Button>
+
+          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconUser size={22} />}>
+            <span className="text-base font-medium">ဝန်ထမ်းစီမံရန်</span>
+          </Button>
+        </div>
+      </nav>
+
+      {/* 🟢 ၂။ အလယ်ခြမ်း - Barcode Scanner & Product Table Grid */}
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden p-6">
+        <div className="mb-6 flex items-center gap-4">
+          <ActionIcon
+            variant="light"
+            color="cyan"
+            size="xl"
+            radius="md"
+            onClick={toggleLeftNav}
+            title="ဘယ်ဘက် Sidebar ဖွင့်/ပိတ်ရန်"
+            aria-label="Toggle left navigation"
+          >
+            <IconMenu2 size={24} />
+          </ActionIcon>
+
+          <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1">
+            <TextInput
+              ref={inputRef}
+              leftSection={<IconBarcode size={24} className="text-gray-400" />}
+              placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850123456789)..."
+              size="lg"
+              radius="md"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              onBlur={() => inputRef.current?.focus()}
+              styles={{
+                input: {
+                  backgroundColor: activeTheme.inputBg,
+                  color: '#ffffff',
+                  border: `2px solid ${activeTheme.id === 'midnight' ? '#2e303a' : '#4338ca'}`,
+                  fontSize: '16px',
+                  fontFamily: 'monospace',
+                },
+              }}
+            />
+          </form>
+
+          <Menu shadow="md" width={200} trigger="click" position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်">
+                <IconPalette size={24} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown className="border-[#2e303a] bg-[#1f2028]">
+              <Menu.Label className="font-bold text-gray-400">POS Themes ရွေးချယ်ပါ</Menu.Label>
+              {POS_THEMES.map((t) => (
+                <Menu.Item
+                  key={t.id}
+                  className="text-white transition-colors duration-200 hover:bg-[#2e303a]"
+                  onClick={() => setActiveTheme(t)}
+                >
+                  <Group gap="xs">
+                    <div className={`h-3 w-3 rounded-full ${t.bg}`} />
+                    <Text size="sm">{t.name}</Text>
+                  </Group>
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
+        </div>
+
+        <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
+          <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+            <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
+              <Table.Tr>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ကုန်ပစ္စည်းအမည်</Table.Th>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဘားကုဒ်</Table.Th>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
+                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {cartItems.length === 0 ? (
+                <Table.Tr>
+                  <Table.Td colSpan={6} className="border-none py-20 text-center text-gray-400">
+                    <div className="flex flex-col items-center gap-3">
+                      <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
+                      <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
+                    </div>
+                  </Table.Td>
+                </Table.Tr>
+              ) : (
+                cartItems.map((item, index: number) => (
+                  <Table.Tr key={item.id} className={`border-b ${activeTheme.border}`}>
+                    <Table.Td>{index + 1}</Table.Td>
+                    <Table.Td className="font-medium text-white">{item.name}</Table.Td>
+                    <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
+                    <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
+                    <Table.Td>
+                      <Badge color={item.saleType === SaleType.WEIGHT ? 'teal' : activeTheme.badgeColor} variant="light" size="lg">
+                        {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
+                      </Badge>
+                    </Table.Td>
+                    <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
+                  </Table.Tr>
+                ))
+              )}
+            </Table.Tbody>
+          </Table>
+        </Paper>
+      </main>
+
+
+      {/* 🟢 ညာဘက်ခြမ်း - Checkout Sidebar Panel (Show/Hide Slider Layout) ⭐ */}
+      <aside className={`${activeTheme.panel} flex h-full w-[380px] shrink-0 flex-col justify-between border-l ${activeTheme.border} p-6`}>
+        <div className={`border-b ${activeTheme.border} pb-6`}>
+          <div className="mb-2 flex items-center gap-3">
+            <IconReceipt size={32} className={activeTheme.primaryText} />
+            <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
+          </div>
+          <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
+
+          <div className="mt-12 flex justify-between text-lg text-gray-300">
+            <span>စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
+            <span className="font-bold text-white">{cartItems.length} မျိုး</span>
+          </div>
+
+          <div className={`mt-8 flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4`}>
+            <span className="text-sm font-semibold tracking-wider text-gray-400">TOTAL AMOUNT</span>
+            <span className="mt-2 font-mono text-4xl font-extrabold text-[#10b981]">
+              {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
+            </span>
+          </div>
+        </div>
+
+        <Button
+          color={activeTheme.badgeColor}
+          size="xl"
+          radius="md"
+          className="h-auto w-full py-4 text-xl font-bold shadow-lg"
+          leftSection={<IconReceipt size={24} />}
+        >
+          ငွေရှင်းမည် (F12)
+        </Button>
+      </aside>
+    </div>
+  );
+}
+
+export default App;

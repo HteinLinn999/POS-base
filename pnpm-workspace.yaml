@@ -7,6 +7,11 @@ allowBuilds:
   msgpackr-extract: true
   prisma: false
   workerd: true
+minimumReleaseAgeExclude:
+  - '@mantine/core@9.6.2'
+  - '@mantine/hooks@9.6.2'
+  - '@mantine/notifications@9.6.2'
+  - '@mantine/store@9.6.2'
 onlyBuiltDependencies:
   - "@prisma/engines"
   - "prisma"
