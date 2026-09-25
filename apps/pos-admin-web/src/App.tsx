@@ -60,9 +60,14 @@ function App() {
         icon: <IconShoppingCart size={16} />,
       });
     } catch (error: any) {
+      const msg =
+        error?.response?.data?.message     // NestJS error body
+        ?? error?.message                   // Network error
+        ?? 'မသိသော အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်';
+
       notifications.show({
         title: 'အရောင်းအမှား',
-        message: error.message,
+        message: Array.isArray(msg) ? msg.join(', ') : msg, // NestJS ValidationPipe array ပြန်နိုင်
         color: 'red',
         icon: <IconBarcode size={16} />,
       });

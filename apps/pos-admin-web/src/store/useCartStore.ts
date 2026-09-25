@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { SaleType } from '@pos/shared-types';
+import { api } from '../api/axios';   // ⭐ အသစ် import
 
 export interface ICartItem {
   id: string;
@@ -13,56 +14,64 @@ export interface ICartItem {
 
 interface ICartState {
   cartItems: ICartItem[];
-  isLeftNavOpen: boolean; // ဘယ်ဘက် Nav Sidebar ၏ ပွင့်/ပိတ် State ⭐
-  toggleLeftNav: () => void; // ဘယ်ဘက် Nav Sidebar အား Toggle လုပ်မည့် Function ⭐
+  isLeftNavOpen: boolean;
+  toggleLeftNav: () => void;
   addItemByBarcode: (barcode: string) => Promise<void>;
   clearCart: () => void;
 }
 
+// Backend က response ပုံစံ
+interface IProductFromApi {
+  id: string;
+  name: string;
+  barcode: string;
+  price: number;
+  saleType: SaleType;
+  unitOfMeasurement: string;
+  stockQuantity: number;
+}
+
 export const useCartStore = create<ICartState>((set, get) => ({
   cartItems: [],
-  isLeftNavOpen: true, // Default အနေဖြင့် ဘယ်ဘက် Sidebar အား အဖွင့်ထားမည်
+  isLeftNavOpen: true,
 
   toggleLeftNav: () => set((state) => ({ isLeftNavOpen: !state.isLeftNavOpen })),
 
   addItemByBarcode: async (barcode: string) => {
-    const mockDb: Record<string, { name: string; price: number; saleType: SaleType }> = {
-      '8850123456789': { name: 'Coca Cola Can', price: 1500, saleType: SaleType.UNIT },
-      '8850987654321': { name: 'City Mart Premium Bread', price: 2800, saleType: SaleType.UNIT },
-    };
-
-    const foundProduct = mockDb[barcode];
-    if (!foundProduct) {
-      throw new Error('ကုန်ပစ္စည်း ရှာမတွေ့ပါ။ Barcode ပြန်လည် စစ်ဆေးပါ!');
-    }
+    // ⭐ mockDb အစား — Backend API ကို ခေါ်
+    const { data: foundProduct } = await api.get<IProductFromApi>(
+      `/products/barcode/${encodeURIComponent(barcode)}`,
+    );
 
     const cartItems = get().cartItems;
-    const existingItemIndex = cartItems.findIndex(item => item.barcode === barcode);
+    const existingItemIndex = cartItems.findIndex(
+      (item) => item.barcode === barcode,
+    );
 
     if (existingItemIndex > -1) {
       const updatedCart = [...cartItems];
       const item = updatedCart[existingItemIndex];
       const newQuantity = item.quantity + 1;
-      
+
       updatedCart[existingItemIndex] = {
         ...item,
         quantity: newQuantity,
-        total: newQuantity * item.price
+        total: newQuantity * item.price,
       };
       set({ cartItems: updatedCart });
     } else {
       const newItem: ICartItem = {
-        id: Math.random().toString(),
+        id: foundProduct.id,                // Backend က UUID ပြန်ပေးတာကို သုံး
         name: foundProduct.name,
-        barcode: barcode,
-        price: foundProduct.price,
+        barcode: foundProduct.barcode,
+        price: Number(foundProduct.price),  // ⭐ Number ပြောင်း (Decimal ဖြစ်နိုင်)
         quantity: 1,
         saleType: foundProduct.saleType,
-        total: foundProduct.price
+        total: Number(foundProduct.price),
       };
       set({ cartItems: [...cartItems, newItem] });
     }
   },
 
-  clearCart: () => set({ cartItems: [] })
+  clearCart: () => set({ cartItems: [] }),
 }));
