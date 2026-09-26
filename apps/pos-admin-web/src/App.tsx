@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group } from '@mantine/core';
+import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group, Modal } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconBarcode,
   IconShoppingCart,
@@ -9,7 +10,8 @@ import {
   IconPalette,
   IconBox,
   IconHistory,
-  IconUser
+  IconUser,
+  IconPrinter
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
 import { useCartStore } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
@@ -40,11 +42,26 @@ function App() {
   const [activeTheme, setActiveTheme] = useState<IThemeConfig>(POS_THEMES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode } = useCartStore();
+  // Mantine Modal State Control (စလစ်ပြသရန် ဖွင့်/ပိတ် ခလုတ်) ⭐
+  const [opened, { open, close }] = useDisclosure(false);
+
+  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart } = useCartStore();
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Keyboard shortcut အဖြစ် F12 နှိပ်ပါက မောက်စ်မကိုင်ဘဲ ငွေရှင်းစလစ် တန်းပွင့်လာစေရန် ⭐
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (cartItems.length > 0) open();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cartItems, open]);
 
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
     //const handleBarcodeSubmit = async (e: React.ChangeEvent) => {
@@ -78,8 +95,16 @@ function App() {
 
   const grandTotal = cartItems.reduce((sum: number, item) => sum + item.total, 0);
 
+  // 🖨️ Browser window မှတစ်ဆင့် တကယ့် Thermal Printer ဆီသို့ ပုံစံထုတ်ပေးမည့် Native Print Logic ⭐
+  const handlePrintReceipt = () => {
+    window.print(); // ၎င်းသည် မျက်နှာပြင်ပေါ်ရှိ print layout အား ပရင်တာဆီ ပို့ပေးမည် ဖြစ်သည်
+    clearCart(); // ပရင့်ထုတ်ပြီးပါက ကောင်တာခြင်းတောင်းအား တစ်ခါတည်း ရှင်းလင်းပေးခြင်း
+    close();
+  };
+
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
+      {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - Navigation Sidebar */}
       <nav
         className={`${activeTheme.panel} flex h-full shrink-0 flex-col items-center gap-6 overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'
           }`}
@@ -146,6 +171,7 @@ function App() {
             />
           </form>
 
+          {/* Theme Selector */}
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
               <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်">
@@ -170,6 +196,7 @@ function App() {
           </Menu>
         </div>
 
+        {/* Table List Container */}
         <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
           <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
             <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
@@ -242,10 +269,77 @@ function App() {
           radius="md"
           className="h-auto w-full py-4 text-xl font-bold shadow-lg"
           leftSection={<IconReceipt size={24} />}
+          onClick={open}
+          disabled={cartItems.length === 0}
         >
-          ငွေရှင်းမည် (F12)
+          ငွေရှင်းမည် (F2)
         </Button>
       </aside>
+
+      <Modal
+        opened={opened}
+        onClose={close}
+        title="အရောင်းစလစ်ဘောက်ချာ (Invoice Receipt)"
+        centered
+        size="md"
+        classNames={{
+          content: 'bg-[#1f2028] border border-[#2e303a] text-white print:bg-white print:text-black print:border-none print:shadow-none',
+          header: 'bg-[#1f2028] border-b border-[#2e303a] text-white print:hidden',
+        }}
+      >
+        {/* 🖨️ ပရင်တာမှ ထွက်လာမည့် တကယ့် 80mm စက္ကူလိပ်ဒီဇိုင်း (Print Layer Area) */}
+        <div id="receipt-print-area" className="p-4 font-mono text-sm leading-relaxed text-gray-200 print:text-black print:p-0 print:w-[80mm] mx-auto bg-[#16171d] print:bg-white rounded-lg border border-[#2e303a] print:border-none">
+          <div className="text-center mb-4">
+            <Text size="xl" className="font-extrabold text-white print:text-black">CITY MART SUPERMARKET</Text>
+            <Text size="xs" className="text-gray-400 print:text-black">ရန်ကုန်မြို့၊ မြန်မာနိုင်ငံ။</Text>
+            <Text size="xs" className="text-gray-400 print:text-black">ဖုန်း - ၀၁-၁၂၃၄၅६၇</Text>
+            <div className="text-left mt-4 text-xs border-b border-dashed border-gray-600 pb-2">
+              <div>နေ့ရက် - {new Date().toLocaleString('en-MM')}</div>
+              <div>ဘောက်ချာနံပါတ် - INV-{Math.floor(100000 + Math.random() * 900000)}</div>
+              <div>ဝန်ထမ်း - Cashier Counter 01</div>
+            </div>
+          </div>
+
+          {/* စလစ်ထဲရှိ ပစ္စည်းစာရင်းဇယားအကျဉ်း */}
+          <div className="flex flex-col gap-2 text-xs border-b border-dashed border-gray-600 pb-2 mb-2">
+            <div className="flex justify-between font-bold text-white print:text-black">
+              <span className="w-1/2">ပစ္စည်းအမည်</span>
+              <span className="w-1/4 text-center">နှုန်း x ရေ</span>
+              <span className="w-1/4 text-right">သင့်ငွေ</span>
+            </div>
+            {cartItems.map((item) => (
+              <div key={item.id} className="flex justify-between text-gray-300 print:text-black">
+                <span className="w-1/2 truncate">{item.name}</span>
+                <span className="w-1/4 text-center">{item.price} x {item.quantity}</span>
+                <span className="w-1/4 text-right">{item.total.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* စုစုပေါင်းငွေ တွက်ချက်မှုပြကွက် */}
+          <div className="flex flex-col gap-1 text-xs font-bold pt-2">
+            <div className="flex justify-between text-white print:text-black">
+              <span>စုစုပေါင်း ကျသင့်ငွေ (TOTAL):</span>
+              <span>{grandTotal.toLocaleString()} MMK</span>
+            </div>
+            <div className="flex justify-between text-gray-400 print:text-black text-[11px] font-normal italic text-center mt-4 w-full justify-center">
+              --- ဝယ်ယူအားပေးမှုကို အထူးကျေးဇူးတင်ပါသည် ---
+            </div>
+          </div>
+        </div>
+
+        {/* Modal အောက်ခြေ ပရင့်ထုတ်မည့် ခလုတ် (ပရင့်ထုတ်ချိန်တွင် ၎င်းခလုတ်များ အလိုအလျောက် ပျောက်နေရပါမည်) */}
+        <Group className="mt-6 print:hidden" justify="flex-end">
+          <Button variant="subtle" color="gray" onClick={close}>ပယ်ဖျက်မည်</Button>
+          <Button
+            color="teal"
+            leftSection={<IconPrinter size={18} />}
+            onClick={handlePrintReceipt}
+          >
+            စလစ်ထုတ်မည် (Print)
+          </Button>
+        </Group>
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 
@@ -52,6 +56,7 @@ export class ProductsService {
       },
     });
 
+    console.log('product :', product);
     if (!product) {
       // Controller မှာ catch ဖြစ်စေဖို့ NotFoundException ကို ဒီမှာ throw
       throw new NotFoundException(
