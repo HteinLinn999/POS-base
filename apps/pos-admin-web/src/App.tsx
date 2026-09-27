@@ -419,7 +419,7 @@ function App() {
           <Button
             color="teal"
             leftSection={<IconPrinter size={18} />}
-            onClick={handlePrintReceipt}
+            onClick={handleFinalCheckout}
             loading={loading}
             disabled={changeGiven < 0}
           >
