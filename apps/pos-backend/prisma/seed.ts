@@ -57,7 +57,7 @@ async function main() {
 
   // ② ကြက်သား (WEIGHT — အလေးချိန်နဲ့ ရောင်း)
   await prisma.product.upsert({
-    where: { barcode: '8850009999999' },
+    where: { barcode: ' ' },
     update: {},
     create: {
       name: 'ကြက်သား (အလေးချိန်)',
