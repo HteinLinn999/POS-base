@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group, Modal } from '@mantine/core';
+import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group, Modal , NumberInput ,Select} from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -42,10 +42,16 @@ function App() {
   const [activeTheme, setActiveTheme] = useState<IThemeConfig>(POS_THEMES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+
+  // 🛒 အသစ် — ငွေရှင်းရာတွင် ဝယ်သူပေးငွေနှင့် Payment Method စစ်ဆေးရန် UI States ⭐
+  const [cashReceived, setCashReceived] = useState<number | string>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
+  const [loading, setLoading] = useState<boolean>(false);
+
   // Mantine Modal State Control (စလစ်ပြသရန် ဖွင့်/ပိတ် ခလုတ်) ⭐
   const [opened, { open, close }] = useDisclosure(false);
 
-  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart } = useCartStore();
+  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout } = useCartStore();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -62,6 +68,15 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cartItems, open]);
+
+
+  // Modal ပွင့်လာလျှင် ကျသင့်ငွေအား ဝယ်သူပေးငွေနေရာတွင် အလိုအလျောက် default အဆင်သင့် ဖြည့်ပေးထားခြင်း
+  useEffect(() => {
+    if (opened) {
+      const totalAmount = cartItems.reduce((sum: number, item) => sum + item.total, 0);
+      setCashReceived(totalAmount);
+    }
+  }, [opened, cartItems]);
 
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
     //const handleBarcodeSubmit = async (e: React.ChangeEvent) => {
@@ -94,12 +109,45 @@ function App() {
   };
 
   const grandTotal = cartItems.reduce((sum: number, item) => sum + item.total, 0);
+  const changeGiven = Number(cashReceived) - grandTotal;
+
 
   // 🖨️ Browser window မှတစ်ဆင့် တကယ့် Thermal Printer ဆီသို့ ပုံစံထုတ်ပေးမည့် Native Print Logic ⭐
   const handlePrintReceipt = () => {
     window.print(); // ၎င်းသည် မျက်နှာပြင်ပေါ်ရှိ print layout အား ပရင်တာဆီ ပို့ပေးမည် ဖြစ်သည်
     clearCart(); // ပရင့်ထုတ်ပြီးပါက ကောင်တာခြင်းတောင်းအား တစ်ခါတည်း ရှင်းလင်းပေးခြင်း
     close();
+  };
+
+  // 🚀 အသစ် — ငွေရှင်းခလုတ် နှိပ်လိုက်သည့်အခါ တကယ့် PostgreSQL DB ထဲသို့ သွားသိမ်းပြီးမှ ပရင့်ထုတ်မည့် စနစ် ⭐
+  const handleFinalCheckout = async () => {
+    setLoading(true);
+    try {
+      // ၁။ Zustand မှတစ်ဆင့် Backend API Transaction စနစ်သို့ လှမ်းပို့သိမ်းခိုင်းခြင်း 🎯
+      await submitCheckout(Number(cashReceived), paymentMethod);
+
+      // ၂။ DB ထဲတွင် အောင်မြင်စွာ သိမ်းဆည်းပြီးမှသာ စက်ပြင် Thermal Printer အား ပရင့်ထုတ်ခိုင်းခြင်း
+      window.print();
+
+      notifications.show({
+        title: 'အရောင်းအောင်မြင်ပါသည်',
+        message: 'ဘောက်ချာအား ဒေတာဘေ့စ်ထဲ သိမ်းဆည်းပြီး ပရင့်ထုတ်ပြီးပါပြီ',
+        color: 'green',
+        icon: <IconReceipt size={16} />,
+      });
+
+      clearCart();
+      close();
+    } catch (error: any) {
+      notifications.show({
+        title: 'ငွေရှင်းမှု ကျရှုံးပါသည်',
+        message: error.message,
+        color: 'red',
+        icon: <IconReceipt size={16} />,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -287,6 +335,43 @@ function App() {
           header: 'bg-[#1f2028] border-b border-[#2e303a] text-white print:hidden',
         }}
       >
+
+        {/* --------------------- */}
+        <div className="flex flex-col gap-4 mb-6 print:hidden">
+          <Select
+            label="ငွေပေးချေမှုစနစ်"
+            placeholder="ရွေးချယ်ပါ"
+            data={['Cash', 'KPay', 'WaveMoney', 'Card']}
+            value={paymentMethod}
+            onChange={(val) => setPaymentMethod(val || 'Cash')}
+            styles={{
+              label: { color: '#9ca3af', fontWeight: 600, marginBottom: '6px' },
+              input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }
+            }}
+          />
+
+          <NumberInput
+            label="ဝယ်သူပေးငွေ (Cash Received)"
+            size="md"
+            min={grandTotal}
+            value={cashReceived}
+            onChange={(val) => setCashReceived(val)}
+            thousandSeparator=","
+            suffix=" MMK"
+            styles={{
+              label: { color: '#9ca3af', fontWeight: 600, marginBottom: '6px' },
+              input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }
+            }}
+          />
+
+          <div className="flex justify-between p-3 bg-[#16171d] rounded-md border border-[#2e303a] mt-2">
+            <span className="text-gray-400 font-bold">ပြန်အမ်းငွေ (Change Given):</span>
+            <span className="font-mono font-bold text-orange-400">
+              {changeGiven >= 0 ? `${changeGiven.toLocaleString()} MMK` : 'ငွေမလောက်ပါ'}
+            </span>
+          </div>
+        </div>
+        {/* --------------------- */}
         {/* 🖨️ ပရင်တာမှ ထွက်လာမည့် တကယ့် 80mm စက္ကူလိပ်ဒီဇိုင်း (Print Layer Area) */}
         <div id="receipt-print-area" className="p-4 font-mono text-sm leading-relaxed text-gray-200 print:text-black print:p-0 print:w-[80mm] mx-auto bg-[#16171d] print:bg-white rounded-lg border border-[#2e303a] print:border-none">
           <div className="text-center mb-4">
@@ -330,16 +415,19 @@ function App() {
 
         {/* Modal အောက်ခြေ ပရင့်ထုတ်မည့် ခလုတ် (ပရင့်ထုတ်ချိန်တွင် ၎င်းခလုတ်များ အလိုအလျောက် ပျောက်နေရပါမည်) */}
         <Group className="mt-6 print:hidden" justify="flex-end">
-          <Button variant="subtle" color="gray" onClick={close}>ပယ်ဖျက်မည်</Button>
+          <Button variant="subtle" color="gray" onClick={close} disabled={loading}>ပယ်ဖျက်မည်</Button>
           <Button
             color="teal"
             leftSection={<IconPrinter size={18} />}
             onClick={handlePrintReceipt}
+            loading={loading}
+            disabled={changeGiven < 0}
           >
-            စလစ်ထုတ်မည် (Print)
+            အပြီးသတ်ငွေရှင်းမည် (Print)
           </Button>
         </Group>
       </Modal>
+
     </div>
   );
 }
