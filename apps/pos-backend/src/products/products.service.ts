@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 
@@ -34,5 +38,35 @@ export class ProductsService {
         categoryId: dto.categoryId,
       },
     });
+  }
+
+  // ✅ အသစ် — Barcode နဲ့ ရှာဖွေခြင်း
+  async findByBarcode(barcode: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { barcode },
+      // ✅ Frontend လိုအပ်တဲ့ field တွေပဲ ရွေး (response သေးစေဖို့)
+      select: {
+        id: true,
+        name: true,
+        barcode: true,
+        price: true,
+        saleType: true,
+        unitOfMeasurement: true,
+        stockQuantity: true,
+      },
+    });
+    
+    if (!product) {
+      // Controller မှာ catch ဖြစ်စေဖို့ NotFoundException ကို ဒီမှာ throw
+      throw new NotFoundException(
+        `Barcode "${barcode}" ဖြင့် ကုန်ပစ္စည်း ရှာမတွေ့ပါ`,
+      );
+    }
+
+    // ⚠️ Prisma Decimal → Number (JSON.stringify မှာ string ဖြစ်သွားတာ ကာကွယ်)
+    return {
+      ...product,
+      price: Number(product.price),
+    };
   }
 }

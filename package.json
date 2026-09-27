@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev:admin": "pnpm --filter pos-admin-web dev",
-    "dev:backend": "pnpm --filter pos-backend start:dev",
+    "dev:backend": "pnpm --filter pos-backend start:dev --watch",
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
