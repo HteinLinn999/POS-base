@@ -55,8 +55,7 @@ export class ProductsService {
         stockQuantity: true,
       },
     });
-
-    console.log('product :', product);
+    
     if (!product) {
       // Controller မှာ catch ဖြစ်စေဖို့ NotFoundException ကို ဒီမှာ throw
       throw new NotFoundException(
