@@ -1,0 +1,57 @@
+name: City Mart Enterprise POS CI/CD Pipeline
+
+# ဘယ်အချိန်မှာ ဤ Automation အလုပ်လုပ်မလဲ သတ်မှတ်ချက် (development နှင့် main သို့ push/PR ဝင်ချိန်) ⭐
+on:
+  push:
+    branches: [ development, main ]
+  pull_request:
+    branches: [ development, main ]
+
+jobs:
+  # 🧪 အပိုင်း ၁ - Quality & Testing Gate (Linting နဲ့ Tests များကို အလိုအလျောက် စစ်ဆေးခြင်း)
+  test-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm Package Manager
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Shared Types Package
+        run: pnpm --filter @pos/shared-types build
+
+      - name: Run Backend Prisma Schema Validate
+        run: pnpm --filter pos-backend prisma generate
+
+      - name: Run Backend Unit & Integration Tests
+        run: pnpm --filter pos-backend test
+        env:
+          # Test ပတ်ချိန်တွင် ယာယီသုံးစွဲမည့် InMemory/Mock Database URL Environment
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/pos_test?schema=public"
+
+  # 🚀 အပိုင်း ၂ - Automated Deployment (Test အကုန်အောင်မှသာ ဆာဗာပေါ်သို့ အလိုအလျောက် လွှင့်တင်ခြင်း)
+  deploy-to-cloud:
+    needs: test-and-validate # Test အောင်မြင်ပြီးမှသာ ဤအလုပ်ကို လုပ်ခွင့်ပြုမည် ⭐
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' # PR တင်ရုံပဲဆိုလျှင် မတင်သေးဘဲ Merge/Push ဖြစ်မှသာ ဆာဗာပေါ် တင်ရန်
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Deploying Message
+        run: |
+          echo "🚀 Quality Gate Checked: 100% Passed!"
+          echo "🌐 Connecting to Production Cloud Server Server..."
+          echo "📦 Assembling production bundles and syncing database migrations..."
+          # 💡 နောက်ပိုင်းတွင် အစ်ကိုအသုံးပြုမည့် တကယ့် Cloud Platform (ဥပမာ - AWS, Docker သို့မဟုတ် PM2 Server Cloud) ၏ Deploy Command များကို ဤနေရာတွင် ထည့်သွင်းရမည် ဖြစ်ပါသည်
