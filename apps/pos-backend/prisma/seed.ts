@@ -11,6 +11,20 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+
+  // ═══════════════════════════════════════════════════════════
+  // Step 0: တရားဝင် ဝန်ထမ်း Cashier အား အရင်ဆောက်ပေးခြင်း ⭐ (Foreign Key အောင်မြင်စေရန်)
+  // ═══════════════════════════════════════════════════════════
+  await prisma.user.upsert({
+    where: { username: 'cashier_01' },
+    update: {},
+    create: {
+      id: '9f074d0e-953e-4b40-9a3d-425886616238', //useCartStore ထဲက UUID နှင့် အတိအကျ ကွက်တိ ကိုက်ညီရပါမည် 🎯
+      username: 'cashier_01',
+      password: 'password123',
+      role: 'CASHIER'
+    }
+  });
   // ═══════════════════════════════════════════════════════════
   // Step 1: Category များ အရင် ဖန်တီး
   // (Product က categoryId ကို မဖြစ်မနေ လိုအပ်တာကြောင့်)
@@ -57,7 +71,7 @@ async function main() {
 
   // ② ကြက်သား (WEIGHT — အလေးချိန်နဲ့ ရောင်း)
   await prisma.product.upsert({
-    where: { barcode: ' ' },
+    where: { barcode: '8850009999999' },
     update: {},
     create: {
       name: 'ကြက်သား (အလေးချိန်)',
