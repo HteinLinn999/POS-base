@@ -24,13 +24,13 @@ export class ProductsController {
   @Get('barcode/:barcode')
   async findByBarcode(@Param('barcode') barcode: string) {
     const product = await this.productsService.findByBarcode(barcode);
-    // Service ကိုယ်တိုင် NotFoundException throw လုပ်တာကြောင့်
-    // Controller မှာ try/catch မလိုအပ်တော့ဘူး
-    // if (!product) {
-    //   throw new NotFoundException(
-    //     `Barcode "${barcode}" ဖြင့် ကုန်ပစ္စည်း ရှာမတွေ့ပါ`,
-    //   );
-    // }
+
     return product;
+  }
+
+  @Post('stock-in') 
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  async stockIn(@Body() body: { barcode: string; quantity: number }) {
+    return this.productsService.stockInByBarcode(body.barcode, body.quantity);
   }
 }

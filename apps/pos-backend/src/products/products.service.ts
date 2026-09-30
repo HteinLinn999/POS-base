@@ -55,7 +55,7 @@ export class ProductsService {
         stockQuantity: true,
       },
     });
-    
+
     if (!product) {
       // Controller မှာ catch ဖြစ်စေဖို့ NotFoundException ကို ဒီမှာ throw
       throw new NotFoundException(
@@ -68,5 +68,40 @@ export class ProductsService {
       ...product,
       price: Number(product.price),
     };
+  }
+
+  async stockInByBarcode(barcode: string, quantity: number) {
+    const product = await this.prisma.product.findUnique({
+      where: { barcode },
+    });
+
+    if (!product) {
+      throw new NotFoundException(
+        `Barcode "${barcode}" ဖြင့် ကုန်ပစ္စည်းစာရင်း ရှာမတွေ့ပါ`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedProduct = await tx.product.update({
+        where: { id: product.id },
+        data: {
+          stockQuantity: {
+            increment: quantity,
+          },
+        },
+      });
+
+      await tx.stockHistory.create({
+        data: {
+          productId: product.id,
+          quantity: quantity,
+          transactionType: 'STOCK_IN',
+          reason:
+            'မိုဘိုင်းလ်အက်ပ် (Warehouse Mobile) မှတစ်ဆင့် ပစ္စည်းအဝင်ဖြည့်ခြင်း',
+        },
+      });
+
+      return updatedProduct;
+    });
   }
 }

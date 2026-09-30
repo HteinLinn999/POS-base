@@ -2,6 +2,7 @@
   "expo": {
     "name": "pos-mobile",
     "slug": "pos-mobile",
+    "scheme": "posmobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
