@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # 🐳 container 1 - PostgreSQL Database Server
+  pos-database:
+    image: postgres:17-alpine
+    container_name: citymart_postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_password
+      POSTGRES_DB: citymart_pos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pos-network
+
+  # 🐳 container 2 - Nest.js Backend REST API
+  pos-backend:
+    build:
+      context: .
+      dockerfile: apps/pos-backend/Dockerfile
+    container_name: citymart_nest_api
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres_secure_password@pos-database:5432/citymart_pos_db?schema=public"
+      PORT: 3000
+    depends_on:
+      - pos-database
+    networks:
+      - pos-network
+
+  # 🐳 container 3 - React + Mantine v9 + Tailwind v4 Web Frontend (Nginx Server Embedded)
+  pos-admin-web:
+    build:
+      context: .
+      dockerfile: apps/pos-admin-web/Dockerfile
+    container_name: citymart_react_admin
+    ports:
+      - "80:80"
+    depends_on:
+      - pos-backend
+    networks:
+      - pos-network
+
+volumes:
+  postgres_data:
+
+networks:
+  pos-network:
+    driver: bridge
