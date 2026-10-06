@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { SaleType } from "@pos/shared-types";
 import { api } from "../api/axios";
+import { notifications } from "@mantine/notifications";
 
 export interface ICartItem {
   id: string;
@@ -11,10 +12,31 @@ export interface ICartItem {
   saleType: SaleType;
   total: number;
 }
+export interface ISalesOrder {
+  id: string;
+  totalAmount: number;
+  cashReceived: number;
+  changeGiven: number;
+  paymentMethod: string;
+  cashierId: string;
+  createdAt: string;
+  orderItems?: {
+    id: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    product: {
+      name: string;
+    };
+  }[];
+}
 
+export type ActiveView = "counter" | "inventory" | "history" | "staff";
 interface ICartState {
   cartItems: ICartItem[];
   isLeftNavOpen: boolean;
+  activeView: ActiveView;
+  setActiveView: (view: ActiveView) => void;
   toggleLeftNav: () => void;
   addItemByBarcode: (barcode: string) => Promise<void>;
   // 🛒 တကယ့် ငွေရှင်း API လုပ်ဆောင်ချက် အသစ် ⭐
@@ -23,6 +45,11 @@ interface ICartState {
     paymentMethod: string,
   ) => Promise<void>;
   clearCart: () => void;
+
+  //new feature
+  salesOrders: ISalesOrder[];
+  isSalesLoading: boolean;
+  fetchSalesOrders: () => Promise<void>;
 }
 
 // Backend က response ပုံစံ
@@ -40,11 +67,17 @@ export const useCartStore = create<ICartState>((set, get) => ({
   cartItems: [],
   isLeftNavOpen: true,
 
+  salesOrders: [],
+  isSalesLoading: false,
+
+  activeView: "counter", //default view
+  setActiveView: (view: ActiveView) => set({ activeView: view }),
+
   toggleLeftNav: () =>
     set((state) => ({ isLeftNavOpen: !state.isLeftNavOpen })),
 
   addItemByBarcode: async (barcode: string) => {
-    // ⭐ mockDb အစား — Backend API ကို ခေါ်
+    // ⭐ calls the Backend  API instead of  mockDb
     const { data: foundProduct } = await api.get<IProductFromApi>(
       `/products/barcode/${encodeURIComponent(barcode)}`,
     );
@@ -97,7 +130,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
       cashReceived,
       changeGiven,
       paymentMethod,
-      cashierId: "9f074d0e-953e-4b40-9a3d-425886616238", // ယာယီ စမ်းသပ်မည့် Cashier User UUID
+      cashierId: "9f074d0e-953e-4b40-9a3d-425886616238", // ယာယီ စမ်းသပ်မည့် Cashier User UUID       
       items: currentCart.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -116,4 +149,21 @@ export const useCartStore = create<ICartState>((set, get) => ({
     }
   },
   clearCart: () => set({ cartItems: [] }),
+
+  fetchSalesOrders: async () => {
+    set({ isSalesLoading: true });
+    try {
+      // Nest.js Backend ၏ Order List API ဆီသို့ လှမ်းအော်ခြင်း
+      const { data } = await api.get<ISalesOrder[]>("/orders");
+      set({ salesOrders: data });
+    } catch (error: any) {
+      notifications.show({
+        title: "ဒေတာဆွဲယူမှု အမှား",
+        message: "အရောင်းမှတ်တမ်းများအား ဒေတာဘေ့စ်မှ ဆွဲယူ၍မရပါ",
+        color: "red",
+      });
+    } finally {
+      set({ isSalesLoading: false });
+    }
+  },
 }));

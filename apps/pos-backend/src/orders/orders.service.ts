@@ -60,4 +60,24 @@ export class OrderService {
       return order;
     });
   }
+
+  // 📊 ဒေတာဘေ့စ်အတွင်းရှိ အရောင်းမှတ်တမ်းများအားလုံးကို ရှာဖွေထုတ်ပေးမည့် စနစ်သစ် ⭐
+  async getAllOrders() {
+    return this.prisma.order.findMany({
+      orderBy: {
+        createdAt: 'desc', // နောက်ဆုံးရောင်းရသော ဘောက်ချာများအား ထိပ်ဆုံးတွင် အရင်ပြသရန် 🎯
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                name: true, // ပစ္စည်းစာရင်းပြရန်အတွက် Product Table မှ အမည်အား Join ဆွဲခြင်း
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

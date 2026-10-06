@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group, Modal , NumberInput ,Select} from '@mantine/core';
+import { TextInput, Table, Paper, Text, Button, Badge, ActionIcon, Menu, Group, Modal, NumberInput, Select, Divider } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -51,11 +51,17 @@ function App() {
   // Mantine Modal State Control (စလစ်ပြသရန် ဖွင့်/ပိတ် ခလုတ်) ⭐
   const [opened, { open, close }] = useDisclosure(false);
 
-  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout } = useCartStore();
+  const [detailOpened, { open: openDetail, close: closeDetail }] = useDisclosure(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+
+  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout, activeView, setActiveView, fetchSalesOrders, salesOrders }
+    = useCartStore();
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+    if (activeView === 'history') fetchSalesOrders();
+  }, [activeView, fetchSalesOrders]);
 
   // Keyboard shortcut အဖြစ် F12 နှိပ်ပါက မောက်စ်မကိုင်ဘဲ ငွေရှင်းစလစ် တန်းပွင့်လာစေရန် ⭐
   useEffect(() => {
@@ -152,88 +158,129 @@ function App() {
 
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
-      {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - Navigation Sidebar */}
+      {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - အဆင့်မြှင့်တင်ထားသော ဒိုင်နမစ် Navigation Navbar */}
       <nav
-        className={`${activeTheme.panel} flex h-full shrink-0 flex-col items-center gap-6 overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'
+        className={`${activeTheme.panel} flex h-full shrink-0 flex-col justify-between overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out print:hidden ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'
           }`}
         aria-hidden={!isLeftNavOpen}
       >
-        <div className="flex h-10 w-full items-center justify-start gap-3 overflow-hidden px-2">
-          <IconReceipt size={32} className={activeTheme.primaryText} />
-          <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
+        <div className="flex flex-col w-full gap-6">
+          <div className="flex h-10 w-full items-center justify-start gap-3 overflow-hidden px-2">
+            <IconReceipt size={32} className={activeTheme.primaryText} />
+            <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
+          </div>
+
+          {/* Menu Links List - activeView အပေါ်မူတည်၍ Variant အပြန်အလှန် ပြောင်းလဲပေးမည့် စနစ် ⭐ */}
+          <div className="mt-4 flex w-full flex-col gap-2">
+            <Button
+              variant={activeView === 'counter' ? 'light' : 'subtle'}
+              color={activeView === 'counter' ? activeTheme.badgeColor : 'gray'}
+              size="md"
+              className={`h-12 w-full justify-start ${activeView !== 'counter' ? 'text-gray-400 hover:text-white' : ''}`}
+              leftSection={<IconShoppingCart size={22} />}
+              onClick={() => setActiveView('counter')}
+            >
+              <span className="text-base font-medium">အရောင်းကောင်တာ</span>
+            </Button>
+
+            <Button
+              variant={activeView === 'inventory' ? 'light' : 'subtle'}
+              color={activeView === 'inventory' ? activeTheme.badgeColor : 'gray'}
+              size="md"
+              className={`h-12 w-full justify-start ${activeView !== 'inventory' ? 'text-gray-400 hover:text-white' : ''}`}
+              leftSection={<IconBox size={22} />}
+              onClick={() => setActiveView('inventory')}
+            >
+              <span className="text-base font-medium">ပစ္စည်းအဝင်/အထွက်</span>
+            </Button>
+
+            <Button
+              variant={activeView === 'history' ? 'light' : 'subtle'}
+              color={activeView === 'history' ? activeTheme.badgeColor : 'gray'}
+              size="md"
+              className={`h-12 w-full justify-start ${activeView !== 'history' ? 'text-gray-400 hover:text-white' : ''}`}
+              leftSection={<IconHistory size={22} />}
+              onClick={() => setActiveView('history')}
+            >
+              <span className="text-base font-medium">အရောင်းမှတ်တမ်း</span>
+            </Button>
+
+            <Button
+              variant={activeView === 'staff' ? 'light' : 'subtle'}
+              color={activeView === 'staff' ? activeTheme.badgeColor : 'gray'}
+              size="md"
+              className={`h-12 w-full justify-start ${activeView !== 'staff' ? 'text-gray-400 hover:text-white' : ''}`}
+              leftSection={<IconUser size={22} />}
+              onClick={() => setActiveView('staff')}
+            >
+              <span className="text-base font-medium">ဝန်ထမ်းစီမံရန်</span>
+            </Button>
+          </div>
         </div>
 
-        <div className="mt-4 flex w-full flex-col gap-2">
-          <Button variant="light" color="cyan" size="md" className="h-12 w-full justify-start" leftSection={<IconShoppingCart size={22} />}>
-            <span className="text-base font-medium">အရောင်းကောင်တာ</span>
-          </Button>
-
-          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconBox size={22} />}>
-            <span className="text-base font-medium">ပစ္စည်းအဝင်/အထွက်</span>
-          </Button>
-
-          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconHistory size={22} />}>
-            <span className="text-base font-medium">အရောင်းမှတ်တမ်း</span>
-          </Button>
-
-          <Button variant="subtle" color="gray" size="md" className="h-12 w-full justify-start text-gray-400 hover:text-white" leftSection={<IconUser size={22} />}>
-            <span className="text-base font-medium">ဝန်ထမ်းစီမံရန်</span>
-          </Button>
+        {/* 👤 အောက်ခြေ ဝန်ထမ်း Profile ပြကွက်သစ် */}
+        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] overflow-hidden">
+          <Group gap="xs">
+            <ActionIcon variant="light" color={activeTheme.badgeColor} size="md" radius="xl">
+              <IconUser size={18} />
+            </ActionIcon>
+            <div className="flex flex-col truncate">
+              <Text size="xs" className="text-white font-bold truncate">cashier_01</Text>
+              <Text size="10px" className="text-gray-500 font-semibold tracking-wider">MORNING SHIFT</Text>
+            </div>
+          </Group>
         </div>
       </nav>
 
-      {/* 🟢 ၂။ အလယ်ခြမ်း - Barcode Scanner & Product Table Grid */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden p-6">
+
+      {/* 🟢 ၂။ အလယ်ခြမ်း - Active View အပေါ်မူတည်ပြီး ကွက်တိ ဒိုင်နမစ် ပြောင်းလဲမည့် မျက်နှာပြင်ပြကွက် */}
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden p-6 print:hidden">
+
+        {/* Top Action Bar */}
         <div className="mb-6 flex items-center gap-4">
-          <ActionIcon
-            variant="light"
-            color="cyan"
-            size="xl"
-            radius="md"
-            onClick={toggleLeftNav}
-            title="ဘယ်ဘက် Sidebar ဖွင့်/ပိတ်ရန်"
-            aria-label="Toggle left navigation"
-          >
+          <ActionIcon variant="light" color="cyan" size="xl" radius="md" onClick={toggleLeftNav} title="ဘယ်ဘက် Sidebar ဖွင့်/ပိတ်ရန်">
             <IconMenu2 size={24} />
           </ActionIcon>
 
-          <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1">
-            <TextInput
-              ref={inputRef}
-              leftSection={<IconBarcode size={24} className="text-gray-400" />}
-              placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850123456789)..."
-              size="lg"
-              radius="md"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              onBlur={() => inputRef.current?.focus()}
-              styles={{
-                input: {
-                  backgroundColor: activeTheme.inputBg,
-                  color: '#ffffff',
-                  border: `2px solid ${activeTheme.id === 'midnight' ? '#2e303a' : '#4338ca'}`,
-                  fontSize: '16px',
-                  fontFamily: 'monospace',
-                },
-              }}
-            />
-          </form>
+          {/* အရောင်းကောင်တာ မျက်နှာပြင်ဖြစ်မှသာ Barcode Input Form အား ပြသခိုင်းခြင်း ⭐ */}
+          {activeView === 'counter' && (
+            <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1">
+              <TextInput
+                ref={inputRef}
+                leftSection={<IconBarcode size={24} className="text-gray-400" />}
+                placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850001234567)..."
+                size="lg"
+                radius="md"
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                onBlur={() => {
+                  if (!opened) {
+                    inputRef.current?.focus();
+                  }
+                }}
 
-          {/* Theme Selector */}
+                styles={{
+                  input: {
+                    backgroundColor: activeTheme.inputBg,
+                    color: '#ffffff',
+                    fontSize: '16px',
+                  },
+                }}
+
+              />
+            </form>
+          )}
+          {activeView !== 'counter' && <div className="flex-1"><Text size="xl" className="text-white font-bold capitalize">{activeView} Dashboard</Text></div>}
+
+          {/* Theme Selector Menu */}
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
-              <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်">
-                <IconPalette size={24} />
-              </ActionIcon>
+              <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်"><IconPalette size={24} /></ActionIcon>
             </Menu.Target>
             <Menu.Dropdown className="border-[#2e303a] bg-[#1f2028]">
               <Menu.Label className="font-bold text-gray-400">POS Themes ရွေးချယ်ပါ</Menu.Label>
               {POS_THEMES.map((t) => (
-                <Menu.Item
-                  key={t.id}
-                  className="text-white transition-colors duration-200 hover:bg-[#2e303a]"
-                  onClick={() => setActiveTheme(t)}
-                >
+                <Menu.Item key={t.id} className="text-white transition-colors duration-200 hover:bg-[#2e303a]" onClick={() => setActiveTheme(t)}>
                   <Group gap="xs">
                     <div className={`h-3 w-3 rounded-full ${t.bg}`} />
                     <Text size="sm">{t.name}</Text>
@@ -244,85 +291,171 @@ function App() {
           </Menu>
         </div>
 
-        {/* Table List Container */}
-        <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
-          <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
-            <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
-              <Table.Tr>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ကုန်ပစ္စည်းအမည်</Table.Th>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဘားကုဒ်</Table.Th>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
-                <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {cartItems.length === 0 ? (
+        {/* 🔄 activeView 'counter' ဖြစ်ပါက Table ပြမည်၊ မဟုတ်ပါက Placeholder ပြမည့် Dynamic Content Area ⭐ */}
+        {activeView === 'counter' ? (
+          <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
+            <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+              <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
                 <Table.Tr>
-                  <Table.Td colSpan={6} className="border-none py-20 text-center text-gray-400">
-                    <div className="flex flex-col items-center gap-3">
-                      <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
-                      <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
-                    </div>
-                  </Table.Td>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ကုန်ပစ္စည်းအမည်</Table.Th>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဘားကုဒ်</Table.Th>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
+                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
                 </Table.Tr>
-              ) : (
-                cartItems.map((item, index: number) => (
-                  <Table.Tr key={item.id} className={`border-b ${activeTheme.border}`}>
-                    <Table.Td>{index + 1}</Table.Td>
-                    <Table.Td className="font-medium text-white">{item.name}</Table.Td>
-                    <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
-                    <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
-                    <Table.Td>
-                      <Badge color={item.saleType === SaleType.WEIGHT ? 'teal' : activeTheme.badgeColor} variant="light" size="lg">
-                        {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
-                      </Badge>
+              </Table.Thead>
+              <Table.Tbody>
+                {cartItems.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={6} className="border-none py-20 text-center text-gray-400">
+                      <div className="flex flex-col items-center gap-3">
+                        <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
+                        <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
+                      </div>
                     </Table.Td>
-                    <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
                   </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </Paper>
+                ) : (
+                  cartItems.map((item, index: number) => (
+                    <Table.Tr key={item.id} className={`border-b ${activeTheme.border}`}>
+                      <Table.Td>{index + 1}</Table.Td>
+                      <Table.Td className="font-medium text-white">{item.name}</Table.Td>
+                      <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
+                      <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
+                      <Table.Td>
+                        <Badge color={item.saleType === SaleType.WEIGHT ? 'teal' : activeTheme.badgeColor} variant="light" size="lg">
+                          {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
+              </Table.Tbody>
+            </Table>
+          </Paper>
+        ) : activeView === 'history' ? (
+          /* 📊 အဆင့် ၁၆ - ဥပဒေအမှန်အတိုင်း အပြည့်စုံဆုံး တည်ဆောက်ထားသော အရောင်းမှတ်တမ်း Grid View Layout ⭐ */
+          <div className="flex-1 flex flex-col gap-6 overflow-hidden">
+
+            {/* 📈 ၁။ ထိပ်ဆုံးက Key Analytics Summary Stat Cards ပြကွက် */}
+            <div className="grid grid-cols-3 gap-4">
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
+                <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
+                  {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
+                </Text>
+              </Paper>
+
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
+                <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
+                  {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
+                </Text>
+              </Paper>
+
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ဘောက်ချာတစ်ခုချင်းစီ၏ ပျမ်းမျှကျသင့်ငွေ)</Text>
+                <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
+                  {salesOrders.length > 0
+                    ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
+                    : 0
+                  } <span className="text-xs font-bold">MMK</span>
+                </Text>
+              </Paper>
+            </div>
+
+            {/* 📅 ၂။ တကယ့် အသေးစိတ် စာရင်းဇယားကွက် (Sales Table Container) */}
+            <Paper className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
+              <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+                <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
+                  <Table.Tr>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {salesOrders.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
+                        <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ) : (
+                    salesOrders.map((order) => (
+                      <Table.Tr key={order.id} className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
+                        onClick={() => {
+                          // 💡 အဆင့် ၁၆.၄ တွင် ဤနေရာ၌ ဘောက်ချာကို ကလစ်နှိပ်ပါက အသေးစိတ်ပစ္စည်းစာရင်း Modal ကို ချိတ်ဆက်ပြသပါမည်
+                          //  notifications.show({ title: 'ဘောက်ချာအသေးစိတ်', message: `Invoice ID: ${order.id.slice(0, 8)}... အား ရွေးချယ်ထားပါသည်`, color: 'cyan' });
+                          setSelectedOrder(order);
+                          openDetail();
+                        }}>
+                        <Table.Td className="font-mono text-white font-bold">INV-{order.id.slice(0, 8).toUpperCase()}</Table.Td>
+                        <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
+                        <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
+                        <Table.Td className="font-mono text-gray-400">{order.cashReceived.toLocaleString()} MMK</Table.Td>
+                        <Table.Td className="font-mono text-gray-400">{order.changeGiven.toLocaleString()} MMK</Table.Td>
+                        <Table.Td className="font-semibold text-[#10b981] font-mono">{order.totalAmount.toLocaleString()} MMK</Table.Td>
+                      </Table.Tr>
+                    ))
+                  )}
+                </Table.Tbody>
+              </Table>
+            </Paper>
+          </div>
+        ) : (
+          /* အရောင်းမှတ်တမ်းနှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
+          <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
+            <IconBox size={64} className="text-gray-500 mb-4" />
+            <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
+          </Paper>
+        )}
+
       </main>
 
 
-      {/* 🟢 ညာဘက်ခြမ်း - Checkout Sidebar Panel (Show/Hide Slider Layout) ⭐ */}
-      <aside className={`${activeTheme.panel} flex h-full w-[380px] shrink-0 flex-col justify-between border-l ${activeTheme.border} p-6`}>
-        <div className={`border-b ${activeTheme.border} pb-6`}>
-          <div className="mb-2 flex items-center gap-3">
-            <IconReceipt size={32} className={activeTheme.primaryText} />
-            <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
-          </div>
-          <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
 
-          <div className="mt-12 flex justify-between text-lg text-gray-300">
-            <span>စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
-            <span className="font-bold text-white">{cartItems.length} မျိုး</span>
+      {/* 💡 FIXED: activeView === 'counter' ဖြစ်မှသာ ညာဘက်ခြမ်း Checkout Sidebar Panel အား ချပြခိုင်းခြင်း ⭐ */}
+      {activeView === 'counter' && (
+        <aside className={`${activeTheme.panel} flex h-full w-[380px] shrink-0 flex-col justify-between border-l ${activeTheme.border} p-6 print:hidden`}>
+          <div className={`border-b ${activeTheme.border} pb-6`}>
+            <div className="mb-2 flex items-center gap-3">
+              <IconReceipt size={32} className={activeTheme.primaryText} />
+              <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
+            </div>
+            <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
+
+            <div className="mt-12 flex justify-between text-lg text-gray-300">
+              <span>စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
+              <span className="font-bold text-white">{cartItems.length} မျိုး</span>
+            </div>
+
+            <div className={`mt-8 flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4`}>
+              <span className="text-sm font-semibold tracking-wider text-gray-400">TOTAL AMOUNT</span>
+              <span className="mt-2 font-mono text-4xl font-extrabold text-[#10b981]">
+                {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
+              </span>
+            </div>
           </div>
 
-          <div className={`mt-8 flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4`}>
-            <span className="text-sm font-semibold tracking-wider text-gray-400">TOTAL AMOUNT</span>
-            <span className="mt-2 font-mono text-4xl font-extrabold text-[#10b981]">
-              {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
-            </span>
-          </div>
-        </div>
+          <Button
+            color={activeTheme.badgeColor}
+            size="xl"
+            radius="md"
+            className="h-auto w-full py-4 text-xl font-bold shadow-lg"
+            leftSection={<IconReceipt size={24} />}
+            onClick={open}
+            disabled={cartItems.length === 0}
+          >
+            ငွေရှင်းမည် (F2)
+          </Button>
+        </aside>
+      )}
 
-        <Button
-          color={activeTheme.badgeColor}
-          size="xl"
-          radius="md"
-          className="h-auto w-full py-4 text-xl font-bold shadow-lg"
-          leftSection={<IconReceipt size={24} />}
-          onClick={open}
-          disabled={cartItems.length === 0}
-        >
-          ငွေရှင်းမည် (F2)
-        </Button>
-      </aside>
 
       <Modal
         opened={opened}
@@ -355,7 +488,7 @@ function App() {
             size="md"
             min={grandTotal}
             value={cashReceived}
-            onChange={(val) => setCashReceived(val)}
+            onChange={(val) => setCashReceived(val || 0)}
             thousandSeparator=","
             suffix=" MMK"
             styles={{
@@ -427,6 +560,68 @@ function App() {
           </Button>
         </Group>
       </Modal>
+
+      {/* show the details of items list */}
+      <Modal
+        opened={detailOpened}
+        onClose={closeDetail}
+        title={<Text fw={700} size="lg">ဘောက်ချာအသေးစိတ် စာရင်းမှတ်တမ်း</Text>}
+        centered
+        size="lg"
+        classNames={{
+          content: 'bg-[#1f2028] border border-[#2e303a] text-white',
+          header: 'bg-[#1f2028] border-b border-[#2e303a] text-white',
+        }}
+      >
+        {selectedOrder && (
+          <div className="flex flex-col gap-4 font-mono text-sm">
+            {/* ဘောက်ချာ၏ ပင်မ Metadata အချက်အလက်များ */}
+            <div className="grid grid-cols-2 gap-3 bg-[#16171d] p-4 rounded-md border border-[#2e303a]">
+              <div><Text size="xs" color="gray">INVOICE NO :</Text><Text fw="bold" color="cyan">INV-{selectedOrder.id.slice(0, 8).toUpperCase()}</Text></div>
+              <div><Text size="xs" color="gray">DATE / TIME :</Text><Text fw="bold">{new Date(selectedOrder.createdAt).toLocaleString('en-MM')}</Text></div>
+              <div><Text size="xs" color="gray">PAYMENT METHOD :</Text><Badge color="blue" variant="light">{selectedOrder.paymentMethod}</Badge></div>
+              <div><Text size="xs" color="gray">CASHIER ID :</Text><Text fw="bold" size="xs" className="truncate">{selectedOrder.cashierId}</Text></div>
+            </div>
+
+            {/* ဝယ်ယူသွားခဲ့သော ပစ္စည်းစာရင်းဇယားကွက် သီးသန့်ပြကွက် */}
+            <Text fw={700} size="sm" color="gray" className="mt-2">PURCHASED ITEMS (ဝယ်ယူခဲ့သော ပစ္စည်းများ)</Text>
+            <Table verticalSpacing="xs" className="w-full bg-[#16171d] rounded-md overflow-hidden">
+              <Table.Thead className="bg-[#2e303a]">
+                <Table.Tr>
+                  <Table.Th className="text-gray-400 font-semibold text-xs">ကုန်ပစ္စည်းအမည်</Table.Th>
+                  <Table.Th className="text-gray-400 font-semibold text-xs text-center">အရေအတွက်</Table.Th>
+                  <Table.Th className="text-gray-400 font-semibold text-xs text-right">ယူနစ်ဈေး</Table.Th>
+                  <Table.Th className="text-gray-400 font-semibold text-xs text-right">ကျသင့်ငွေ</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {selectedOrder.orderItems?.map((item: any) => (
+                  <Table.Tr key={item.id} className="border-b border-[#2e303a]">
+                    <Table.Td className="text-white text-xs">{item.product?.name || 'Unknown Item'}</Table.Td>
+                    <Table.Td className="text-center text-xs fw-bold text-orange-400">{item.quantity} Pcs/Kg</Table.Td>
+                    <Table.Td className="text-right text-xs">{item.unitPrice.toLocaleString()} MMK</Table.Td>
+                    <Table.Td className="text-right text-xs fw-bold text-[#10b981]">{(item.quantity * item.unitPrice).toLocaleString()} MMK</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+
+            {/* စုစုပေါင်းငွေရှင်းတမ်း ဖြတ်ပိုင်းအကျဉ်း */}
+            <Divider color="#2e303a" className="my-2" />
+            <div className="flex flex-col gap-2 bg-[#16171d] p-4 rounded-md border border-[#2e303a]">
+              <div className="flex justify-between text-xs text-gray-400"><span>ဝယ်သူပေးငွေ (CASH RECEIVED):</span><span>{selectedOrder.cashReceived.toLocaleString()} MMK</span></div>
+              <div className="flex justify-between text-xs text-gray-400"><span>ပြန်အမ်းငွေ (CHANGE GIVEN):</span><span>{selectedOrder.changeGiven.toLocaleString()} MMK</span></div>
+              <Divider color="#2e303a" variant="dashed" className="my-1" />
+              <div className="flex justify-between text-base fw-extrabold text-[#10b981]"><span>TOTAL AMOUNT :</span><span>{selectedOrder.totalAmount.toLocaleString()} MMK</span></div>
+            </div>
+
+            <Group justify="flex-end" className="mt-4">
+              <Button color="gray" variant="subtle" onClick={closeDetail}>ပိတ်မည်</Button>
+            </Group>
+          </div>
+        )}
+      </Modal>
+
 
     </div>
   );
