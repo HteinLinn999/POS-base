@@ -56,7 +56,7 @@ interface ICartState {
   isSalesLoading: boolean;
   fetchSalesOrders: () => Promise<void>;
 
-  //new feature for mantine select box
+  //new feature for mantine select box for category
   categories: ICategoryFromApi[];
   fetchCategories: () => Promise<void>;
 }
