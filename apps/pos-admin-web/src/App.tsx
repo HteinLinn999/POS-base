@@ -16,6 +16,7 @@ import {
 import { SaleType } from '@pos/shared-types';
 import { useCartStore } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
 
+import { api } from './api/axios';
 interface IThemeConfig {
   id: string;
   name: string;
@@ -55,13 +56,31 @@ function App() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
 
-  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout, activeView, setActiveView, fetchSalesOrders, salesOrders }
+  //form for import and export items
+  const [prodName, setProdName] = useState<string>('');
+  const [prodBarcode, setProdBarcode] = useState<string>('');
+  const [prodSku, setProdSku] = useState<string>('');
+  const [prodPrice, setProdPrice] = useState<number | string>('');
+  const [prodCost, setProdCost] = useState<number | string>('');
+  const [prodStock, setProdStock] = useState<number | string>('');
+  const [prodSaleType, setProdSaleType] = useState<string>('UNIT');
+  const [prodUnit, setProdUnit] = useState<string>('Pcs');
+  const [prodCategoryId, setProdCategoryId] = useState<string>('9f074d0e-953e-4b40-9a3d-425886616238'); // Dynamic FK Placeholder
+  const [formLoading, setFormLoading] = useState<boolean>(false);
+
+  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout, activeView, setActiveView, fetchSalesOrders, salesOrders, categories }
     = useCartStore();
 
   useEffect(() => {
     inputRef.current?.focus();
     if (activeView === 'history') fetchSalesOrders();
   }, [activeView, fetchSalesOrders]);
+
+  useEffect(() => {
+    if (activeView === 'inventory') {
+      useCartStore.getState().fetchCategories();
+    }
+  }, [activeView]);
 
   // Keyboard shortcut အဖြစ် F12 နှိပ်ပါက မောက်စ်မကိုင်ဘဲ ငွေရှင်းစလစ် တန်းပွင့်လာစေရန် ⭐
   useEffect(() => {
@@ -156,6 +175,41 @@ function App() {
     }
   };
 
+  const handleProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prodName || !prodBarcode || !prodSku) {
+      notifications.show({ title: 'ဖြည့်စွက်ရန် လိုအပ်ပါသည်', message: 'အမည်၊ ဘားကုဒ် နှင့် SKU ကုဒ်များအား ဖြည့်စွက်ပါ', color: 'orange' });
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      // Nest.js Backend ၏ create product endpoint ဆီသို့ တိုက်ရိုက် လှမ်းအော်ပို့လွှတ်ခြင်း 🎯
+      await api.post('/products', {
+        name: prodName,
+        barcode: prodBarcode,
+        sku: prodSku,
+        price: Number(prodPrice) || 0,
+        cost: Number(prodCost) || 0,
+        stockQuantity: Number(prodStock) || 0,
+        saleType: prodSaleType,
+        unitOfMeasurement: prodUnit,
+        categoryId: prodCategoryId
+      });
+
+      notifications.show({ title: 'သိမ်းဆည်းပြီးပါပြီ 🟢', message: `ကုန်ပစ္စည်း: ${prodName} အား ဒေတာဘေ့စ်ထဲသို့ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ`, color: 'teal' });
+
+      // အောင်မြင်ပါက Form ခွက်များအားအကုန်လုံး သန့်ရှင်းရေး Reset ပြန်ချပေးခြင်း
+      setProdName(''); setProdBarcode(''); setProdSku(''); setProdPrice(''); setProdCost(''); setProdStock('');
+    } catch (error: any) {
+      const msg = error.response?.data?.message || 'ပစ္စည်းအသစ်ဆောက်မှု ကျရှုံးပါသည်';
+      notifications.show({ title: 'သိမ်းဆည်းမှု မအောင်မြင်ပါ ❌', message: Array.isArray(msg) ? msg.join(', ') : msg, color: 'red' });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
       {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - အဆင့်မြှင့်တင်ထားသော ဒိုင်နမစ် Navigation Navbar */}
@@ -170,13 +224,17 @@ function App() {
             <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
           </div>
 
-          {/* Menu Links List - activeView အပေါ်မူတည်၍ Variant အပြန်အလှန် ပြောင်းလဲပေးမည့် စနစ် ⭐ */}
+          {/* Menu Links List - activeView အပေါ်မူတည်၍ တကယ့် Highlight အစစ်အမှန် လင်းစေမည့်စနစ် 🎯 ⭐ */}
           <div className="mt-4 flex w-full flex-col gap-2">
             <Button
-              variant={activeView === 'counter' ? 'light' : 'subtle'}
+              variant={activeView === 'counter' ? 'filled' : 'subtle'}
               color={activeView === 'counter' ? activeTheme.badgeColor : 'gray'}
               size="md"
-              className={`h-12 w-full justify-start ${activeView !== 'counter' ? 'text-gray-400 hover:text-white' : ''}`}
+              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
+              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'counter'
+                ? 'bg-cyan-600 text-white font-bold shadow-md'
+                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
+                }`}
               leftSection={<IconShoppingCart size={22} />}
               onClick={() => setActiveView('counter')}
             >
@@ -184,10 +242,14 @@ function App() {
             </Button>
 
             <Button
-              variant={activeView === 'inventory' ? 'light' : 'subtle'}
+              variant={activeView === 'inventory' ? 'filled' : 'subtle'}
               color={activeView === 'inventory' ? activeTheme.badgeColor : 'gray'}
               size="md"
-              className={`h-12 w-full justify-start ${activeView !== 'inventory' ? 'text-gray-400 hover:text-white' : ''}`}
+              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
+              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'inventory'
+                ? 'bg-cyan-600 text-white font-bold shadow-md'
+                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
+                }`}
               leftSection={<IconBox size={22} />}
               onClick={() => setActiveView('inventory')}
             >
@@ -195,10 +257,14 @@ function App() {
             </Button>
 
             <Button
-              variant={activeView === 'history' ? 'light' : 'subtle'}
+              variant={activeView === 'history' ? 'filled' : 'subtle'}
               color={activeView === 'history' ? activeTheme.badgeColor : 'gray'}
               size="md"
-              className={`h-12 w-full justify-start ${activeView !== 'history' ? 'text-gray-400 hover:text-white' : ''}`}
+              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
+              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'history'
+                ? 'bg-cyan-600 text-white font-bold shadow-md'
+                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
+                }`}
               leftSection={<IconHistory size={22} />}
               onClick={() => setActiveView('history')}
             >
@@ -206,16 +272,21 @@ function App() {
             </Button>
 
             <Button
-              variant={activeView === 'staff' ? 'light' : 'subtle'}
+              variant={activeView === 'staff' ? 'filled' : 'subtle'}
               color={activeView === 'staff' ? activeTheme.badgeColor : 'gray'}
               size="md"
-              className={`h-12 w-full justify-start ${activeView !== 'staff' ? 'text-gray-400 hover:text-white' : ''}`}
+              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
+              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'staff'
+                ? 'bg-cyan-600 text-white font-bold shadow-md'
+                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
+                }`}
               leftSection={<IconUser size={22} />}
               onClick={() => setActiveView('staff')}
             >
               <span className="text-base font-medium">ဝန်ထမ်းစီမံရန်</span>
             </Button>
           </div>
+
         </div>
 
         {/* 👤 အောက်ခြေ ဝန်ထမ်း Profile ပြကွက်သစ် */}
@@ -407,17 +478,81 @@ function App() {
               </Table>
             </Paper>
           </div>
+        ) : activeView === 'inventory' ? (
+          /* 📦 အဆင့် ၁၇ — 🔗 FIXED: keyboardType အမှားများအားလုံးအား မန်တင်း NumberInput စံနှုန်းစစ်စစ်ဖြင့် အစားထိုးပြင်ဆင်ပြီးပါပြီ 🎯 ⭐ */
+          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+            <div className="mb-6">
+              <Text size="xl" fw={800} className="text-white">NEW PRODUCT ENTRY (ကုန်ပစ္စည်းအသစ် ထည့်သွင်းခြင်းForm)</Text>
+              <Text size="xs" className="text-gray-400 mt-1">လုပ်ငန်းခွင်သုံး စနစ်အတွင်းသို့ ကုန်ပစ္စည်းအချက်အလက်အသစ်များ အပြီးသတ် သတ်မှတ်သိမ်းဆည်းရန် ဖြစ်ပါသည်</Text>
+            </div>
+
+            <form onSubmit={handleProductSubmit} className="flex flex-col gap-5">
+              <div className="grid grid-cols-2 gap-4">
+                <TextInput label="ကုန်ပစ္စည်းအမည်" placeholder="ဥပမာ - Pepsi Can 330ml" required value={prodName} onChange={(e) => setProdName(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+                <TextInput label="ဘားကုဒ်နံပါတ် (Barcode)" placeholder="စကန်ဖတ်ပါ သို့မဟုတ် ရိုက်ထည့်ပါ..." required value={prodBarcode} onChange={(e) => setProdBarcode(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <TextInput label="SKU ကုဒ်နံပါတ်" placeholder="ဥပမာ - PEPSI-330" required value={prodSku} onChange={(e) => setProdSku(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+                <Select label="ရောင်းချသည့်ပုံစံ (Sale Type)" data={['UNIT', 'WEIGHT']} value={prodSaleType} onChange={(val) => setProdSaleType(val || 'UNIT')} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                {/* 🔗 NumberInputs များကို သန့်ရှင်းစွာ ချိန်ညှိခြင်း (ကီးဘုတ်ဖြင့် စာရိုက်ပြင်ဆင်၍ ရပါသည်) */}
+                <NumberInput label="ရင်းဈေး (Cost Price)" placeholder="0 MMK" value={prodCost} onChange={(val) => setProdCost(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+                <NumberInput label="ရောင်းဈေး (Selling Price)" placeholder="0 MMK" value={prodPrice} onChange={(val) => setProdPrice(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+                <NumberInput label="အစဦးလက်ကျန်အရေအတွက်" placeholder="0" value={prodStock} onChange={(val) => setProdStock(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="တိုင်းတာသည့်ယူနစ် (Unit)"
+                  placeholder="တိုင်းတာသည့် ယူနစ်ရွေးချယ်ပါ"
+                  data={['Pcs', 'Kg', 'Pack', 'Gram', 'Bottle', 'Box']} // City Mart တွင် အသုံးအများဆုံး စံပြယူနစ်စာရင်းများ
+                  value={prodUnit}
+                  onChange={(val) => setProdUnit(val || 'Pcs')}
+                  styles={{
+                    input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' },
+                    label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' }
+                  }} />
+
+                <Select
+                  label="ကုန်ပစ္စည်းအုပ်စု (Category)"
+                  placeholder={categories.length === 0 ? "Category များအား ဆွဲယူနေပါသည်..." : "ပစ္စည်းအုပ်စု ရွေးချယ်ပါ"}
+
+                  // 🎯 သော့ချက်အဆင့် — ရရှိလာသော ဒေတာများအား မန်တင်းစံနှုန်း Specs အတိုင်း ဒိုင်နမစ် အပိုင် Mapping ပြုလုပ်ပေးခြင်း
+                  data={categories.map((cat) => ({
+                    value: cat.id,   // တကယ့် ဒေတာဘေ့စ်ထဲသို့ သွားသိမ်းမည့် Category UUID သော့ချက်
+                    label: cat.name  // ဝန်ထမ်း မျက်စိဖြင့် မြင်တွေ့ရမည့် အုပ်စုအမည် (ဥပမာ - အချိုရည်၊ အသား၊ မုန့်)
+                  }))}
+
+                  value={prodCategoryId}
+                  onChange={(val) => setProdCategoryId(val || '')}
+                  styles={{
+                    input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' },
+                    label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' }
+                  }}
+                />
+                {/* <Select label="ကုန်ပစ္စည်းအုပ်စု (Category)" data={[{ value: '9f074d0e-953e-4b40-9a3d-425886616238', label: 'အချိုရည် / စားသောက်ကုန်' }]} value={prodCategoryId} onChange={(val) => setProdCategoryId(val || '')} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} /> */}
+              </div>
+
+              <Divider color="#2e303a" className="my-2" />
+
+              <Group justify="flex-end">
+                <Button type="submit" color={activeTheme.badgeColor} size="md" loading={formLoading} className="px-8 font-bold">
+                  ကုန်ပစ္စည်းအသစ်သိမ်းဆည်းမည်
+                </Button>
+              </Group>
+            </form>
+          </Paper>
         ) : (
-          /* အရောင်းမှတ်တမ်းနှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
+          /* အရောင်းမှတ်တမ်း၊ အင်ဗင်ထရီ နှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
           <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
             <IconBox size={64} className="text-gray-500 mb-4" />
             <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
           </Paper>
         )}
-
       </main>
-
-
 
       {/* 💡 FIXED: activeView === 'counter' ဖြစ်မှသာ ညာဘက်ခြမ်း Checkout Sidebar Panel အား ချပြခိုင်းခြင်း ⭐ */}
       {activeView === 'counter' && (

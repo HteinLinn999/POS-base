@@ -104,4 +104,12 @@ export class ProductsService {
       return updatedProduct;
     });
   }
+  
+  async getAllCategories() {
+    return this.prisma.category.findMany({
+      orderBy: {
+        name: 'asc', // အက္ခရာစဉ်အလိုက် လှလှပပ စီတန်းထုတ်ပေးရန် 🎯
+      },
+    });
+  }
 }

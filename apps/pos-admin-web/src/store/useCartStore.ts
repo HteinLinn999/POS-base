@@ -32,6 +32,11 @@ export interface ISalesOrder {
 }
 
 export type ActiveView = "counter" | "inventory" | "history" | "staff";
+
+export interface ICategoryFromApi {
+  id: string;
+  name: string;
+}
 interface ICartState {
   cartItems: ICartItem[];
   isLeftNavOpen: boolean;
@@ -50,6 +55,10 @@ interface ICartState {
   salesOrders: ISalesOrder[];
   isSalesLoading: boolean;
   fetchSalesOrders: () => Promise<void>;
+
+  //new feature for mantine select box
+  categories: ICategoryFromApi[];
+  fetchCategories: () => Promise<void>;
 }
 
 // Backend က response ပုံစံ
@@ -130,7 +139,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
       cashReceived,
       changeGiven,
       paymentMethod,
-      cashierId: "9f074d0e-953e-4b40-9a3d-425886616238", // ယာယီ စမ်းသပ်မည့် Cashier User UUID       
+      cashierId: "9f074d0e-953e-4b40-9a3d-425886616238", // ယာယီ စမ်းသပ်မည့် Cashier User UUID
       items: currentCart.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -164,6 +173,19 @@ export const useCartStore = create<ICartState>((set, get) => ({
       });
     } finally {
       set({ isSalesLoading: false });
+    }
+  },
+
+  categories: [],
+
+  fetchCategories: async () => {
+    try {
+      const { data } = await api.get<ICategoryFromApi[]>(
+        "/products/categories",
+      );
+      set({ categories: data });
+    } catch (error) {
+      console.error("Category ဆွဲယူမှု ကျရှုံးပါသည်", error);
     }
   },
 }));

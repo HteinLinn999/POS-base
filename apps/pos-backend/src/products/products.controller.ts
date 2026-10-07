@@ -33,4 +33,9 @@ export class ProductsController {
   async stockIn(@Body() body: { barcode: string; quantity: number }) {
     return this.productsService.stockInByBarcode(body.barcode, body.quantity);
   }
+    @Get('categories')
+  async getCategories() {
+    return this.productsService.getAllCategories();
+  }
+
 }
