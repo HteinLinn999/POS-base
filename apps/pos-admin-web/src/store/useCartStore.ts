@@ -11,6 +11,9 @@ export interface ICartItem {
   quantity: number;
   saleType: SaleType;
   total: number;
+
+  //
+  stockQuantity: number;
 }
 export interface ISalesOrder {
   id: string;
@@ -116,6 +119,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
         quantity: 1,
         saleType: foundProduct.saleType,
         total: Number(foundProduct.price),
+        stockQuantity: foundProduct.stockQuantity,
       };
       set({ cartItems: [...cartItems, newItem] });
     }
@@ -140,7 +144,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
       cashReceived,
       changeGiven,
       paymentMethod,
-      cashierId: currentCashierId,  // ယာယီ စမ်းသပ်မည့် Cashier User UUID
+      cashierId: currentCashierId, // ယာယီ စမ်းသပ်မည့် Cashier User UUID
       items: currentCart.map((item) => ({
         productId: item.id,
         quantity: item.quantity,

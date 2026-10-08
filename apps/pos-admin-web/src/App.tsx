@@ -394,6 +394,18 @@ function App() {
                       <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
                       <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
                       <Table.Td>
+                        <Badge
+                          color={item.stockQuantity <= 10 ? 'red' : 'gray'}
+                          variant={item.stockQuantity <= 10 ? 'filled' : 'light'}
+                          size="sm"
+                          className={item.stockQuantity <= 10 ? 'animate-pulse font-bold' : ''}
+                        // လက်ကျန်နည်းပါက အနီရောင်ဖြင့် တုန်ခါသတိပေးခိုင်းခြင်း 🚨
+                        >
+                          {item.stockQuantity <= 10 ? `လက်ကျန်ပြတ်လုနီးပါး (${item.stockQuantity})` : `							လက်ကျန်အဆင်ပြေ (${item.stockQuantity})`}
+                        </Badge>
+                      </Table.Td>
+
+                      <Table.Td>
                         <Badge color={item.saleType === SaleType.WEIGHT ? 'teal' : activeTheme.badgeColor} variant="light" size="lg">
                           {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
                         </Badge>

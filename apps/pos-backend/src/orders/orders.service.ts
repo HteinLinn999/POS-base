@@ -9,15 +9,15 @@ export class OrderService {
   async checkoutOrder(dto: CreateOrderDto) {
     // return this.prisma.\$transaction(async (tx) => {
     return this.prisma.$transaction(async (tx) => {
-      tx.$executeRawUnsafe(
+      await tx.$executeRawUnsafe(
         `CREATE SEQUENCE IF NOT EXISTS order_invoice_seq START 1;`,
       );
 
       const seqResult: any = await tx.$queryRawUnsafe(
         `SELECT nextval('order_invoice_seq') as next_id;`,
       );
+      // const nextId = Number(seqResult[0].next_id);
       const nextId = Number(seqResult[0].next_id);
-
       const currentYear = new Date().getFullYear();
       const formattedInvoiceNo = `INV-${currentYear}-${String(nextId).padStart(5, '0')}`;
 
