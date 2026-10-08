@@ -642,14 +642,19 @@ function App() {
         {/* --------------------- */}
         {/* 🖨️ ပရင်တာမှ ထွက်လာမည့် တကယ့် 80mm စက္ကူလိပ်ဒီဇိုင်း (Print Layer Area) */}
         <div id="receipt-print-area" className="p-4 font-mono text-sm leading-relaxed text-gray-200 print:text-black print:p-0 print:w-[80mm] mx-auto bg-[#16171d] print:bg-white rounded-lg border border-[#2e303a] print:border-none">
+          {/* 🔗 FIXED: Random ဂဏန်းများအစား တကယ့် PostgreSQL Database မှ ထွက်လာသော တရားဝင် စီစဉ်နံပါတ်အား ထုတ်ပြခြင်း 🎯 ⭐ */}
           <div className="text-center mb-4">
             <Text size="xl" className="font-extrabold text-white print:text-black">CITY MART SUPERMARKET</Text>
-            <Text size="xs" className="text-gray-400 print:text-black">ရန်ကုန်မြို့၊ မြန်မာနိုင်ငံ။</Text>
-            <Text size="xs" className="text-gray-400 print:text-black">ဖုန်း - ၀၁-၁၂၃၄၅६၇</Text>
             <div className="text-left mt-4 text-xs border-b border-dashed border-gray-600 pb-2">
               <div>နေ့ရက် - {new Date().toLocaleString('en-MM')}</div>
-              <div>ဘောက်ချာနံပါတ် - INV-{Math.floor(100000 + Math.random() * 900000)}</div>
-              <div>ဝန်ထမ်း - Cashier Counter 01</div>
+
+              {/* ⚠️ ဤနေရာတွင် ရွေးချယ်ထားသော ဘောက်ချာ သို့မဟုတ် ခြင်းတောင်းမှ ထွက်လာသော invoiceNo အား ကွက်တိ ချိတ်ဆက်ခြင်း */}
+              <div className="font-bold text-white print:text-black">
+                ဘောက်ချာနံပါတ် - {selectedOrder ? selectedOrder.invoiceNo : `INV-${new Date().getFullYear()}-XXXXX`}
+              </div>
+
+              <div>ငွေရှင်းစနစ် - {paymentMethod}</div>
+              <div>ဝန်ထမ်း - cashier_01</div>
             </div>
           </div>
 

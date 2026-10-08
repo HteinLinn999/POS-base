@@ -75,6 +75,7 @@ model StockHistory {
 // ၆။ အရောင်းဘောက်ချာ (Invoices)
 model Order {
   id            String      @id @default(uuid())
+  invoiceNo     String      @unique
   totalAmount   Float
   cashReceived  Float
   changeGiven   Float

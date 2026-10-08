@@ -133,13 +133,14 @@ export const useCartStore = create<ICartState>((set, get) => ({
       throw new Error("ဝယ်သူပေးငွေသည် ကျသင့်ငွေထက် နည်းနေပါသည်");
     }
 
+    const currentCashierId = "9f074d0e-953e-4b40-9a3d-425886616238";
     // Backend 'CreateOrderDto' က မျှော်လင့်ထားသည့် Payload ပုံစံအတိုင်း ဒေတာအား စနစ်တကျ တည်ဆောက်ခြင်း
     const orderPayload = {
       totalAmount,
       cashReceived,
       changeGiven,
       paymentMethod,
-      cashierId: "9f074d0e-953e-4b40-9a3d-425886616238", // ယာယီ စမ်းသပ်မည့် Cashier User UUID
+      cashierId: currentCashierId,  // ယာယီ စမ်းသပ်မည့် Cashier User UUID
       items: currentCart.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
