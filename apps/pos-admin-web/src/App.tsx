@@ -89,10 +89,22 @@ function App() {
         e.preventDefault();
         if (cartItems.length > 0) open();
       }
+      if (e.key === 'Escape') {
+        if (cartItems.length > 0) {
+          e.preventDefault();
+          clearCart(); // ခြင်းတောင်းအားလုံး ဖျက်ဆီးခြင်း
+          notifications.show({
+            title: 'ခြင်းတောင်း ရှင်းလင်းပြီးပါပြီ 🧹',
+            message: 'ခြင်းတောင်းထဲရှိ ပစ္စည်းစာရင်းများအားလုံးကို ရှင်းလင်းလိုက်ပါသည်',
+            color: 'orange',
+          });
+        }
+      }
+
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cartItems, open]);
+  }, [cartItems, open,clearCart]);
 
 
   // Modal ပွင့်လာလျှင် ကျသင့်ငွေအား ဝယ်သူပေးငွေနေရာတွင် အလိုအလျောက် default အဆင်သင့် ဖြည့်ပေးထားခြင်း
@@ -209,7 +221,7 @@ function App() {
     }
   };
 
-console.log('categories :'+{categories})
+  console.log('categories :' + { categories })
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
       {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - အဆင့်မြှင့်တင်ထားသော ဒိုင်နမစ် Navigation Navbar */}
@@ -534,7 +546,7 @@ console.log('categories :'+{categories})
 
                   // 🎯 သော့ချက်အဆင့် — ရရှိလာသော ဒေတာများအား မန်တင်းစံနှုန်း Specs အတိုင်း ဒိုင်နမစ် အပိုင် Mapping ပြုလုပ်ပေးခြင်း
                   data={categories.map((cat) => ({
-                     value: String(cat.id),   // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
+                    value: String(cat.id),   // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
                     label: String(cat.name)  // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
                   }))}
 
@@ -651,28 +663,28 @@ console.log('categories :'+{categories})
             </span>
           </div>
 
-           {/* ⚠️ အဆင့် ၂၂ အပြီးသတ် FIXED: Brackets နှင့် Styles အမှား ၄ ခုစလုံးအား ရာနှုန်းပြည့် ခြေဖျက်ပြီးသား ကုဒ်စစ်စစ် ဖြစ်ပါသည် 🎯 ⭐ */}
-            {
-              (paymentMethod === 'KPay' || paymentMethod === 'WaveMoney') && (
-                <Paper p="sm" radius="md" className="mt-4 flex flex-col items-center justify-center bg-white border border-gray-200 p-4">
-                  <Text fw={700} size="xs" className="mb-3 tracking-wide text-gray-700 text-center w-full">
-                    [ LIVE DIGITAL PAYMENT QR CODE ]
-                  </Text>
-                  
-                  
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`CITYMART-POS|TOTAL:${grandTotal}|METHOD:${paymentMethod}`)}`}
-                    alt="Digital Payment QR Code"
-                    style={{ width: '200px', height: '200px', objectFit: 'contain', margin: '0 auto' }}
-                    className="shadow-md my-3 block rounded-md"
-                  />
-                  
-                  <Text fw={600} size="xs" className="text-gray-500 mt-2.5 text-center w-full ">
-                    ကျသင့်ငွေ အတိအကျ - {grandTotal.toLocaleString()} MMK
-                  </Text>
-                </Paper>
-              )
-            }
+          {/* ⚠️ အဆင့် ၂၂ အပြီးသတ် FIXED: Brackets နှင့် Styles အမှား ၄ ခုစလုံးအား ရာနှုန်းပြည့် ခြေဖျက်ပြီးသား ကုဒ်စစ်စစ် ဖြစ်ပါသည် 🎯 ⭐ */}
+          {
+            (paymentMethod === 'KPay' || paymentMethod === 'WaveMoney') && (
+              <Paper p="sm" radius="md" className="mt-4 flex flex-col items-center justify-center bg-white border border-gray-200 p-4">
+                <Text fw={700} size="xs" className="mb-3 tracking-wide text-gray-700 text-center w-full">
+                  [ LIVE DIGITAL PAYMENT QR CODE ]
+                </Text>
+
+
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`CITYMART-POS|TOTAL:${grandTotal}|METHOD:${paymentMethod}`)}`}
+                  alt="Digital Payment QR Code"
+                  style={{ width: '200px', height: '200px', objectFit: 'contain', margin: '0 auto' }}
+                  className="shadow-md my-3 block rounded-md"
+                />
+
+                <Text fw={600} size="xs" className="text-gray-500 mt-2.5 text-center w-full ">
+                  ကျသင့်ငွေ အတိအကျ - {grandTotal.toLocaleString()} MMK
+                </Text>
+              </Paper>
+            )
+          }
 
         </div>
         {/* --------------------- */}
