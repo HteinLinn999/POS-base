@@ -13,7 +13,7 @@ export class PrismaService
       connectionString: process.env['DATABASE_URL'],
     });
     const adapter = new PrismaPg(pool);
-    super({ adapter }); // ← adapter ထည့်တာ တစ်ခုတည်း ပြောင်း
+    super({ adapter });  
   }
 
   async onModuleInit() {
