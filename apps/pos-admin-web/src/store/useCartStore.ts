@@ -13,7 +13,11 @@ export interface ICartItem {
   total: number;
 
   //stockItem အရေအတွက် က 10  ထက်နည်းရင် သတိပေးဖို့ 
+<<<<<<< Updated upstream
  // stockQuantity: number;
+=======
+  stockQuantity: number;
+>>>>>>> Stashed changes
 }
 export interface ISalesOrder {
   id: string;
