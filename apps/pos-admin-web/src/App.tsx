@@ -650,6 +650,30 @@ console.log('categories :'+{categories})
               {changeGiven >= 0 ? `${changeGiven.toLocaleString()} MMK` : 'ငွေမလောက်ပါ'}
             </span>
           </div>
+
+           {/* ⚠️ အဆင့် ၂၂ အပြီးသတ် FIXED: Brackets နှင့် Styles အမှား ၄ ခုစလုံးအား ရာနှုန်းပြည့် ခြေဖျက်ပြီးသား ကုဒ်စစ်စစ် ဖြစ်ပါသည် 🎯 ⭐ */}
+            {
+              (paymentMethod === 'KPay' || paymentMethod === 'WaveMoney') && (
+                <Paper p="sm" radius="md" className="mt-4 flex flex-col items-center justify-center bg-white border border-gray-200 p-4">
+                  <Text fw={700} size="xs" className="mb-3 tracking-wide text-gray-700 text-center w-full">
+                    [ LIVE DIGITAL PAYMENT QR CODE ]
+                  </Text>
+                  
+                  
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`CITYMART-POS|TOTAL:${grandTotal}|METHOD:${paymentMethod}`)}`}
+                    alt="Digital Payment QR Code"
+                    style={{ width: '200px', height: '200px', objectFit: 'contain', margin: '0 auto' }}
+                    className="shadow-md my-3 block rounded-md"
+                  />
+                  
+                  <Text fw={600} size="xs" className="text-gray-500 mt-2.5 text-center w-full ">
+                    ကျသင့်ငွေ အတိအကျ - {grandTotal.toLocaleString()} MMK
+                  </Text>
+                </Paper>
+              )
+            }
+
         </div>
         {/* --------------------- */}
         {/* 🖨️ ပရင်တာမှ ထွက်လာမည့် တကယ့် 80mm စက္ကူလိပ်ဒီဇိုင်း (Print Layer Area) */}
