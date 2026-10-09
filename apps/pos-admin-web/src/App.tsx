@@ -209,7 +209,7 @@ function App() {
     }
   };
 
-
+console.log('categories :'+{categories})
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
       {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - အဆင့်မြှင့်တင်ထားသော ဒိုင်နမစ် Navigation Navbar */}
@@ -534,8 +534,8 @@ function App() {
 
                   // 🎯 သော့ချက်အဆင့် — ရရှိလာသော ဒေတာများအား မန်တင်းစံနှုန်း Specs အတိုင်း ဒိုင်နမစ် အပိုင် Mapping ပြုလုပ်ပေးခြင်း
                   data={categories.map((cat) => ({
-                    value: cat.id,   // တကယ့် ဒေတာဘေ့စ်ထဲသို့ သွားသိမ်းမည့် Category UUID သော့ချက်
-                    label: cat.name  // ဝန်ထမ်း မျက်စိဖြင့် မြင်တွေ့ရမည့် အုပ်စုအမည် (ဥပမာ - အချိုရည်၊ အသား၊ မုန့်)
+                     value: String(cat.id),   // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
+                    label: String(cat.name)  // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
                   }))}
 
                   value={prodCategoryId}

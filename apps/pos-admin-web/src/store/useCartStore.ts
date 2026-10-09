@@ -12,8 +12,8 @@ export interface ICartItem {
   saleType: SaleType;
   total: number;
 
-  //
-  stockQuantity: number;
+  //stockItem အရေအတွက် က 10  ထက်နည်းရင် သတိပေးဖို့ 
+ // stockQuantity: number;
 }
 export interface ISalesOrder {
   id: string;
