@@ -71,8 +71,18 @@ function App() {
   const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout, activeView, setActiveView, fetchSalesOrders, salesOrders, categories }
     = useCartStore();
 
+  const [currentUser, setCurrentUser] =
+    useState<{ name: string; shift: string }>({
+      name: 'cashier_01',
+      shift: 'MORNING SHIFT'
+    });
+
+
+   
+
   useEffect(() => {
     inputRef.current?.focus();
+    useCartStore.getState().fetchLowStockItems();
     if (activeView === 'history') fetchSalesOrders();
   }, [activeView, fetchSalesOrders]);
 
@@ -104,7 +114,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cartItems, open,clearCart]);
+  }, [cartItems, open, clearCart]);
 
 
   // Modal ပွင့်လာလျှင် ကျသင့်ငွေအား ဝယ်သူပေးငွေနေရာတွင် အလိုအလျောက် default အဆင်သင့် ဖြည့်ပေးထားခြင်း
@@ -301,18 +311,26 @@ function App() {
 
         </div>
 
-        {/* 👤 အောက်ခြေ ဝန်ထမ်း Profile ပြကွက်သစ် */}
-        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] overflow-hidden">
+        {/* 👤 အဆင့် ၂၄ FIXED: ပုံသေ (Hardcode) စာသားအစား ၎င်းနေရာအား currentUser State အမှန်ဖြင့် ဒိုင်နမစ် ချိတ်ဆက်ပြသခြင်း 🎯 ⭐ */}
+        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] overflow-hidden cursor-pointer hover:bg-[#1f2028]" onClick={() => {
+          // ဝန်ထမ်းအကောင့်များအား ကလစ်နှိပ်ရုံဖြင့် အပြန်အလှန် ဒိုင်နမစ် Shift ဂျာစာရင်း ပြောင်းလဲစမ်းသပ်ခိုင်းခြင်း
+          setCurrentUser(prev => ({
+            name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
+            shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
+          }));
+          notifications.show({ title: 'Shift ဂျာစာရင်းပြောင်းလဲခြင်း', message: 'ဝန်ထမ်းအကောင့်နှင့် တာဝန်ကျချိန်အား ပြောင်းလဲလိုက်ပါသည်', color: 'blue' });
+        }}>
           <Group gap="xs">
             <ActionIcon variant="light" color={activeTheme.badgeColor} size="md" radius="xl">
               <IconUser size={18} />
             </ActionIcon>
             <div className="flex flex-col truncate">
-              <Text size="xs" className="text-white font-bold truncate">cashier_01</Text>
-              <Text size="10px" className="text-gray-500 font-semibold tracking-wider">MORNING SHIFT</Text>
+              <Text size="xs" className="text-white font-bold truncate">{currentUser.name}</Text>
+              <Text size="10px" className="text-gray-500 font-semibold tracking-wider">{currentUser.shift}</Text>
             </div>
           </Group>
         </div>
+
       </nav>
 
 
@@ -599,6 +617,28 @@ function App() {
                 {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
               </span>
             </div>
+
+            <div className="mt-6 flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+              <Text size="xs" fw={700} color="red" className="tracking-wider flex items-center gap-1">
+                🚨 LOW STOCK NOTIFICATIONS (လက်ကျန်ပြတ်လုနီးပါးစာရင်း)
+              </Text>
+
+              {/* Zustand Store ရှိ lowStockItems အား ပတ်၍ အနီရောင် Alert ကတ်လေးများဖြင့် စုပြခြင်း */}
+              {useCartStore((state) => state.lowStockItems).length === 0 ? (
+                <Text size="xs" color="gray" className="italic mt-1">ပစ္စည်းလက်ကျန်များအားလုံး စိုပြေအဆင်ပြေနေပါသည်</Text>
+              ) : (
+                useCartStore((state) => state.lowStockItems).map((prod) => (
+                  <div key={prod.id} className="flex justify-between items-center bg-[#ef444415] border border-[#ef444430] p-2.5 rounded-md">
+                    <div className="flex flex-col truncate max-w-[180px]">
+                      <Text size="xs" fw="bold" className="text-white truncate">{prod.name}</Text>
+                      <Text size="10px" className="text-gray-500 font-mono">{prod.barcode}</Text>
+                    </div>
+                    <Badge color="red" variant="filled" size="sm" className="font-bold">Qty: {prod.stockQuantity}</Badge>
+                  </div>
+                ))
+              )}
+            </div>
+
           </div>
 
           <Button

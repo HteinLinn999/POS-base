@@ -104,11 +104,27 @@ export class ProductsService {
       return updatedProduct;
     });
   }
-  
+
   async getAllCategories() {
     return this.prisma.category.findMany({
       orderBy: {
         name: 'asc', // အက္ခရာစဉ်အလိုက် လှလှပပ စီတန်းထုတ်ပေးရန် 🎯
+      },
+    });
+  }
+
+  async getLowStockProducts() {
+    return this.prisma.product.findMany({
+      where: {
+        stockQuantity: {
+          lte: 10, // Less than or equal to 10 အား တိုက်ရိုက် စစ်ထုတ်ခိုင်းခြင်း 🎯
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        barcode: true,
+        stockQuantity: true,
       },
     });
   }

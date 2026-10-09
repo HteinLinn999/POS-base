@@ -37,5 +37,10 @@ export class ProductsController {
   async getCategories() {
     return this.productsService.getAllCategories();
   }
+    @Get('low-stock') // GET /products/low-stock ဝင်ပေါက်လမ်းကြောင်းဖွင့်လှစ်ခြင်း 🎯
+  async getLowStock() {
+    return this.productsService.getLowStockProducts();
+  }
+
 
 }

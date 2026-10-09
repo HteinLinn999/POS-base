@@ -12,7 +12,7 @@ export interface ICartItem {
   saleType: SaleType;
   total: number;
 
-  //stockItem အရေအတွက် က 10  ထက်နည်းရင် သတိပေးဖို့ 
+  //stockItem အရေအတွက် က 10  ထက်နည်းရင် သတိပေးဖို့
   stockQuantity: number;
 }
 export interface ISalesOrder {
@@ -40,6 +40,14 @@ export interface ICategoryFromApi {
   id: string;
   name: string;
 }
+
+export interface ILowStockProduct {
+  id: string;
+  name: string;
+  barcode: string;
+  stockQuantity: number;
+}
+
 interface ICartState {
   cartItems: ICartItem[];
   isLeftNavOpen: boolean;
@@ -62,6 +70,9 @@ interface ICartState {
   //new feature for mantine select box for category
   categories: ICategoryFromApi[];
   fetchCategories: () => Promise<void>;
+
+  lowStockItems: ILowStockProduct[];
+  fetchLowStockItems: () => Promise<void>;
 }
 
 // Backend က response ပုံစံ
@@ -72,6 +83,13 @@ interface IProductFromApi {
   price: number;
   saleType: SaleType;
   unitOfMeasurement: string;
+  stockQuantity: number;
+}
+
+export interface ILowStockProduct {
+  id: string;
+  name: string;
+  barcode: string;
   stockQuantity: number;
 }
 
@@ -191,6 +209,17 @@ export const useCartStore = create<ICartState>((set, get) => ({
       set({ categories: data });
     } catch (error) {
       console.error("Category ဆွဲယူမှု ကျရှုံးပါသည်", error);
+    }
+  },
+
+  lowStockItems: [],
+  fetchLowStockItems: async () => {
+    try {
+      // Nest.js Backend ၏ Low Stock Alert Endpoint ဆီသို့ လှမ်းခေါ်ခြင်း 🎯
+      const { data } = await api.get<ILowStockProduct[]>("/products/low-stock");
+      set({ lowStockItems: data });
+    } catch (error) {
+      console.error("Low Stock ဆွဲယူမှု ကျရှုံးပါသည်", error);
     }
   },
 }));
