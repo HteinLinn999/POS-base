@@ -68,7 +68,20 @@ function App() {
   const [prodCategoryId, setProdCategoryId] = useState<string>('9f074d0e-953e-4b40-9a3d-425886616238'); // Dynamic FK Placeholder
   const [formLoading, setFormLoading] = useState<boolean>(false);
 
-  const { cartItems, isLeftNavOpen, toggleLeftNav, addItemByBarcode, clearCart, submitCheckout, activeView, setActiveView, fetchSalesOrders, salesOrders, categories }
+  const {
+    cartItems,
+    isLeftNavOpen,
+    toggleLeftNav,
+    addItemByBarcode,
+    clearCart,
+    submitCheckout,
+    activeView,
+    setActiveView,
+    fetchSalesOrders,
+    salesOrders,
+    categories,
+    lowStockItems
+  }
     = useCartStore();
 
   const [currentUser, setCurrentUser] =
@@ -76,9 +89,6 @@ function App() {
       name: 'cashier_01',
       shift: 'MORNING SHIFT'
     });
-
-
-   
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -624,10 +634,10 @@ function App() {
               </Text>
 
               {/* Zustand Store ရှိ lowStockItems အား ပတ်၍ အနီရောင် Alert ကတ်လေးများဖြင့် စုပြခြင်း */}
-              {useCartStore((state) => state.lowStockItems).length === 0 ? (
+              {lowStockItems.length === 0 ? (
                 <Text size="xs" color="gray" className="italic mt-1">ပစ္စည်းလက်ကျန်များအားလုံး စိုပြေအဆင်ပြေနေပါသည်</Text>
               ) : (
-                useCartStore((state) => state.lowStockItems).map((prod) => (
+                lowStockItems.map((prod) => (
                   <div key={prod.id} className="flex justify-between items-center bg-[#ef444415] border border-[#ef444430] p-2.5 rounded-md">
                     <div className="flex flex-col truncate max-w-[180px]">
                       <Text size="xs" fw="bold" className="text-white truncate">{prod.name}</Text>
@@ -777,6 +787,23 @@ function App() {
         {/* Modal အောက်ခြေ ပရင့်ထုတ်မည့် ခလုတ် (ပရင့်ထုတ်ချိန်တွင် ၎င်းခလုတ်များ အလိုအလျောက် ပျောက်နေရပါမည်) */}
         <Group className="mt-6 print:hidden" justify="flex-end">
           <Button variant="subtle" color="gray" onClick={close} disabled={loading}>ပယ်ဖျက်မည်</Button>
+          <Button
+            color="orange"
+            leftSection={<IconPrinter size={18} />}
+            onClick={() => {
+              // Browser ၏ Native PDF Save Layout ကို နှိုးဆော်ခြင်း
+              // 🖨️ စက်တွင်း thermal printer အပြင် 'Save as PDF' ကိုပါ စံနှုန်းမီ ရွေးချယ်ခွင့်ပြုပါသည်
+              window.print();
+              notifications.show({
+                title: 'ဒစ်ဂျစ်တယ် PDF စလစ် 🟢',
+                message: 'ဘောက်ချာစလစ်အား PDF အဖြစ် ထုတ်ယူရန် အဆင်သင့်ဖြစ်ပါပြီ',
+                color: 'orange',
+              });
+            }}
+            disabled={cartItems.length === 0}
+          >
+            PDF ထုတ်မည်
+          </Button>
           <Button
             color="teal"
             leftSection={<IconPrinter size={18} />}
