@@ -23,6 +23,7 @@ export interface ISalesOrder {
   paymentMethod: string;
   cashierId: string;
   createdAt: string;
+  invoiceNo :string;
   orderItems?: {
     id: string;
     productId: string;
@@ -30,7 +31,7 @@ export interface ISalesOrder {
     unitPrice: number;
     product: {
       name: string;
-    };
+    };    
   }[];
 }
 
