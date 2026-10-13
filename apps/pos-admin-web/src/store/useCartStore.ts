@@ -63,7 +63,10 @@ interface ICartState {
   setActiveView: (view: ActiveView) => void;
   toggleLeftNav: () => void;
   addItemByBarcode: (barcode: string) => Promise<void>;
-  submitCheckout: (cashReceived: number, paymentMethod: string) => Promise<void>;
+  submitCheckout: (
+    cashReceived: number,
+    paymentMethod: string,
+  ) => Promise<void>;
   clearCart: () => void;
 
   salesOrders: ISalesOrder[];
@@ -82,6 +85,9 @@ interface ICartState {
   offlineQueue: any[];
   isOnline: boolean;
   syncOfflineOrders: () => Promise<void>;
+
+  currentBranchId: string;
+  setCurrentBranchId: (branchId: string) => void;
 }
 
 interface IProductFromApi {
@@ -103,13 +109,17 @@ export const useCartStore = create<ICartState>((set, get) => ({
   activeView: "counter",
   categories: [],
   lowStockItems: [],
-  
+
   // 🌐 Network status နှင့် LocalStorage မှ offline queue ကို စတင်ဖတ်ရှုခြင်း
   isOnline: typeof window !== "undefined" ? navigator.onLine : true,
-  offlineQueue: typeof window !== "undefined" ? JSON.parse(localStorage.getItem("offline_orders_queue") || "[]") : [],
+  offlineQueue:
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("offline_orders_queue") || "[]")
+      : [],
 
   setActiveView: (view: ActiveView) => set({ activeView: view }),
-  toggleLeftNav: () => set((state) => ({ isLeftNavOpen: !state.isLeftNavOpen })),
+  toggleLeftNav: () =>
+    set((state) => ({ isLeftNavOpen: !state.isLeftNavOpen })),
 
   // 🛒 Barcode ဖြင့် ခြင်းတောင်းထဲသို့ ပစ္စည်းထည့်ခြင်း (Stock Validation ပါဝင်သည်)
   addItemByBarcode: async (barcode: string) => {
@@ -119,19 +129,25 @@ export const useCartStore = create<ICartState>((set, get) => ({
 
     // 🛡️ Stock Validation: ပစ္စည်းလက်ကျန် မရှိပါက (<= 0) ချက်ချင်း Error တက်စေခြင်း
     if (foundProduct.stockQuantity <= 0) {
-      throw new Error(`ကုန်ပစ္စည်း "${foundProduct.name}" မှာ လက်ကျန် မရှိတော့ပါ`);
+      throw new Error(
+        `ကုန်ပစ္စည်း "${foundProduct.name}" မှာ လက်ကျန် မရှိတော့ပါ`,
+      );
     }
 
     const cartItems = get().cartItems;
-    const existingItemIndex = cartItems.findIndex((item) => item.barcode === barcode);
+    const existingItemIndex = cartItems.findIndex(
+      (item) => item.barcode === barcode,
+    );
 
     if (existingItemIndex > -1) {
       const updatedCart = [...cartItems];
       const item = updatedCart[existingItemIndex];
-      
+
       // 🛡️ လက်ကျန်ပမာဏထက် ကျော်လွန်၍ အရေအတွက် တိုးမရအောင် ကာကွယ်ခြင်း
       if (item.quantity + 1 > foundProduct.stockQuantity) {
-        throw new Error(`ကုန်ပစ္စည်း "${foundProduct.name}" ၏ လက်ကျန် (${foundProduct.stockQuantity}) ထက် ကျော်လွန်နေပါပြီ`);
+        throw new Error(
+          `ကုန်ပစ္စည်း "${foundProduct.name}" ၏ လက်ကျန် (${foundProduct.stockQuantity}) ထက် ကျော်လွန်နေပါပြီ`,
+        );
       }
 
       const newQuantity = item.quantity + 1;
@@ -159,7 +175,8 @@ export const useCartStore = create<ICartState>((set, get) => ({
   // 💳 ငွေရှင်းခြင်း လုပ်ငန်းစဉ် (Offline-First နှင့် Idempotency Key ပါဝင်သည်)
   submitCheckout: async (cashReceived: number, paymentMethod: string) => {
     const currentCart = get().cartItems;
-    if (currentCart.length === 0) throw new Error("ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိပါ");
+    if (currentCart.length === 0)
+      throw new Error("ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိပါ");
 
     const totalAmount = currentCart.reduce((sum, item) => sum + item.total, 0);
     const changeGiven = cashReceived - totalAmount;
@@ -173,6 +190,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
       cashReceived,
       changeGiven,
       paymentMethod,
+      branchId: get().currentBranchId, 
       cashierId: "9f074d0e-953e-4b40-9a3d-425886616238",
       items: currentCart.map((item) => ({
         productId: item.id,
@@ -186,15 +204,19 @@ export const useCartStore = create<ICartState>((set, get) => ({
     // 🌐 Offline Mode စစ်ဆေးခြင်း: လိုင်းမရှိပါက LocalStorage ထဲ ယာယီသိမ်းဆည်းမည်
     if (!navigator.onLine) {
       const offlineQueue = [...get().offlineQueue, orderPayload];
-      localStorage.setItem("offline_orders_queue", JSON.stringify(offlineQueue));
+      localStorage.setItem(
+        "offline_orders_queue",
+        JSON.stringify(offlineQueue),
+      );
       set({ offlineQueue });
-      
+
       // 🧹 အော်ဒါသိမ်းပြီးသည်နှင့် ခြင်းတောင်းအား အလိုအလျောက် ရှင်းလင်းခြင်း
       get().clearCart();
 
       notifications.show({
         title: "အင်တာနက်လိုင်း မရှိပါ (Offline Mode)",
-        message: "ဘောက်ချာအား Local တွင် သိမ်းဆည်းပြီး လိုင်းပြန်လာပါက Auto Sync လုပ်ပါမည်",
+        message:
+          "ဘောက်ချာအား Local တွင် သိမ်းဆည်းပြီး လိုင်းပြန်လာပါက Auto Sync လုပ်ပါမည်",
         color: "yellow",
       });
       return;
@@ -205,7 +227,9 @@ export const useCartStore = create<ICartState>((set, get) => ({
       // 🧹 Online ဖြင့် အောင်မြင်ပါက ခြင်းတောင်း ရှင်းလင်းခြင်း
       get().clearCart();
     } catch (error: any) {
-      const msg = error.response?.data?.message || "ငွေရှင်းခြင်း လုပ်ငန်းစဉ် မအောင်မြင်ပါ။";
+      const msg =
+        error.response?.data?.message ||
+        "ငွေရှင်းခြင်း လုပ်ငန်းစဉ် မအောင်မြင်ပါ။";
       throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
     }
   },
@@ -223,7 +247,8 @@ export const useCartStore = create<ICartState>((set, get) => ({
       set({ offlineQueue: [] });
       notifications.show({
         title: "Offline Sync အောင်မြင်သည် 🟢",
-        message: "လိုင်းပြတ်တောက်စဥ်က ရောင်းချခဲ့သော ဘောက်ချာများ Server သို့ Sync ပြီးပါပြီ",
+        message:
+          "လိုင်းပြတ်တောက်စဥ်က ရောင်းချခဲ့သော ဘောက်ချာများ Server သို့ Sync ပြီးပါပြီ",
         color: "teal",
       });
     } catch (e) {
@@ -239,7 +264,11 @@ export const useCartStore = create<ICartState>((set, get) => ({
       const { data } = await api.get<ISalesOrder[]>("/orders");
       set({ salesOrders: data });
     } catch (error) {
-      notifications.show({ title: "ဒေတာဆွဲယူမှု အမှား", message: "အရောင်းမှတ်တမ်းများ ယူ၍မရပါ", color: "red" });
+      notifications.show({
+        title: "ဒေတာဆွဲယူမှု အမှား",
+        message: "အရောင်းမှတ်တမ်းများ ယူ၍မရပါ",
+        color: "red",
+      });
     } finally {
       set({ isSalesLoading: false });
     }
@@ -247,7 +276,9 @@ export const useCartStore = create<ICartState>((set, get) => ({
 
   fetchCategories: async () => {
     try {
-      const { data } = await api.get<ICategoryFromApi[]>("/products/categories");
+      const { data } = await api.get<ICategoryFromApi[]>(
+        "/products/categories",
+      );
       set({ categories: data });
     } catch (error) {
       console.error("Category ဆွဲယူမှု ကျရှုံးပါသည်", error);
@@ -278,10 +309,16 @@ export const useCartStore = create<ICartState>((set, get) => ({
     }
     set((state) => ({
       cartItems: state.cartItems.map((item) =>
-        item.id === id ? { ...item, quantity, total: quantity * item.price } : item
+        item.id === id
+          ? { ...item, quantity, total: quantity * item.price }
+          : item,
       ),
     }));
   },
+
+  currentBranchId: "default-branch-uuid", // ပုံသေ သို့မဟုတ် ရွေးချယ်ထားသော ဆိုင်ခွဲ ID
+  setCurrentBranchId: (branchId: string) => set({ currentBranchId: branchId }),
+
 }));
 
 // 🌐 Window Online/Offline Events များအား အလိုအလျောက် နားထောင်စောင့်ကြည့်ခြင်း

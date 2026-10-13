@@ -654,73 +654,70 @@ function App() {
               </Group>
             </form>
           </Paper>
-        ): activeView === 'crm' ? (
-  <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
-    <div className="mb-6">
-      <Text size="xl" fw={800} className="text-white">CUSTOMER RELATIONSHIP MANAGEMENT (CRM & Loyalty)</Text>
-      <Text size="xs" className="text-gray-400 mt-1">ဖောက်သည်အသင်းဝင်များ၏ အချက်အလက်များနှင့် သစ္စာစောင့်သိမှုအမှတ်များကို စီမံခန့်ခွဲရန်</Text>
-    </div>
-    <Table verticalSpacing="md" horizontalSpacing="lg">
-      <Table.Thead className={activeTheme.bg}>
-        <Table.Tr>
-          <Table.Th className="text-gray-400">ဖောက်သည်အမည်</Table.Th>
-          <Table.Th className="text-gray-400">ဖုန်းနံပါတ်</Table.Th>
-          <Table.Th className="text-gray-400">အသင်းဝင်အဆင့် (Tier)</Table.Th>
-          <Table.Th className="text-gray-400">စုဆောင်းရရှိած အမှတ် (Points)</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        <Table.Tr className={`border-b ${activeTheme.border}`}>
-          <Table.Td className="text-white font-bold">ဦးမောင်မောင်</Table.Td>
-          <Table.Td className="font-mono text-gray-300">09-912345678</Table.Td>
-          <Table.Td><Badge color="orange">GOLD MEMBER</Badge></Table.Td>
-          <Table.Td className="font-mono text-[#10b981] font-bold">1,250 PTS</Table.Td>
-        </Table.Tr>
-      </Table.Tbody>
-    </Table>
-  </Paper>
-) : activeView === 'staff' ? (
-  /* 👨‍💼 Staff Management Dashboard View အသစ် */
-  <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
-    <div className="mb-6">
-      <Text size="xl" fw={800} className="text-white">STAFF MANAGEMENT (ဝန်ထမ်းစီမံခန့်ခွဲမှုစနစ်)</Text>
-      <Text size="xs" className="text-gray-400 mt-1">ကောင်တာဝန်ထမ်းများနှင့် မန်နေဂျာများ၏ တာဝန်ကျချိန်နှင့် အခြေအနေများကို စစ်ဆေးရန်</Text>
-    </div>
-    <Table verticalSpacing="md" horizontalSpacing="lg">
-      <Table.Thead className={activeTheme.bg}>
-        <Table.Tr>
-          <Table.Th className="text-gray-400">အကောင့်အမည် (Username)</Table.Th>
-          <Table.Th className="text-gray-400">ရာထူး (Role)</Table.Th>
-          <Table.Th className="text-gray-400">တာဝန်ကျချိန် (Shift)</Table.Th>
-          <Table.Th className="text-gray-400">အခြေအနေ (Status)</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        <Table.Tr className={`border-b ${activeTheme.border}`}>
-          <Table.Td className="text-white font-bold">cashier_01</Table.Td>
-          <Table.Td><Badge color="blue">CASHIER</Badge></Table.Td>
-          <Table.Td className="text-gray-300">MORNING SHIFT (08:00 - 16:00)</Table.Td>
-          <Table.Td><Badge color="teal" variant="dot">Online Active</Badge></Table.Td>
-        </Table.Tr>
-        <Table.Tr className={`border-b ${activeTheme.border}`}>
-          <Table.Td className="text-white font-bold">manager_admin</Table.Td>
-          <Table.Td><Badge color="grape">ADMIN / MANAGER</Badge></Table.Td>
-          <Table.Td className="text-gray-300">NIGHT SHIFT (16:00 - 00:00)</Table.Td>
-          <Table.Td><Badge color="gray" variant="dot">Offline</Badge></Table.Td>
-        </Table.Tr>
-      </Table.Tbody>
-    </Table>
-  </Paper>
-) 
-        : 
-        
-        (
-          /* အရောင်းမှတ်တမ်း၊ အင်ဗင်ထရီ နှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
-          <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
-            <IconBox size={64} className="text-gray-500 mb-4" />
-            <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
+        ) : activeView === 'crm' ? (
+          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+            <div className="mb-6">
+              <Text size="xl" fw={800} className="text-white">CUSTOMER RELATIONSHIP MANAGEMENT (CRM & Loyalty)</Text>
+              <Text size="xs" className="text-gray-400 mt-1">ဖောက်သည်အသင်းဝင်များ၏ အချက်အလက်များနှင့် သစ္စာစောင့်သိမှုအမှတ်များကို စီမံခန့်ခွဲရန်</Text>
+            </div>
+            <Table verticalSpacing="md" horizontalSpacing="lg">
+              <Table.Thead className={activeTheme.bg}>
+                <Table.Tr>
+                  <Table.Th className="text-gray-400">ဖောက်သည်အမည်</Table.Th>
+                  <Table.Th className="text-gray-400">ဖုန်းနံပါတ်</Table.Th>
+                  <Table.Th className="text-gray-400">အသင်းဝင်အဆင့် (Tier)</Table.Th>
+                  <Table.Th className="text-gray-400">စုဆောင်းရရှိած အမှတ် (Points)</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                <Table.Tr className={`border-b ${activeTheme.border}`}>
+                  <Table.Td className="text-white font-bold">ဦးမောင်မောင်</Table.Td>
+                  <Table.Td className="font-mono text-gray-300">09-912345678</Table.Td>
+                  <Table.Td><Badge color="orange">GOLD MEMBER</Badge></Table.Td>
+                  <Table.Td className="font-mono text-[#10b981] font-bold">1,250 PTS</Table.Td>
+                </Table.Tr>
+              </Table.Tbody>
+            </Table>
           </Paper>
-        )}
+        ) : activeView === 'staff' ? (
+          /* 👨‍💼 Staff Management Dashboard View အသစ် */
+          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+            <div className="mb-6">
+              <Text size="xl" fw={800} className="text-white">STAFF MANAGEMENT (ဝန်ထမ်းစီမံခန့်ခွဲမှုစနစ်)</Text>
+              <Text size="xs" className="text-gray-400 mt-1">ကောင်တာဝန်ထမ်းများနှင့် မန်နေဂျာများ၏ တာဝန်ကျချိန်နှင့် အခြေအနေများကို စစ်ဆေးရန်</Text>
+            </div>
+            <Table verticalSpacing="md" horizontalSpacing="lg">
+              <Table.Thead className={activeTheme.bg}>
+                <Table.Tr>
+                  <Table.Th className="text-gray-400">အကောင့်အမည် (Username)</Table.Th>
+                  <Table.Th className="text-gray-400">ရာထူး (Role)</Table.Th>
+                  <Table.Th className="text-gray-400">တာဝန်ကျချိန် (Shift)</Table.Th>
+                  <Table.Th className="text-gray-400">အခြေအနေ (Status)</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                <Table.Tr className={`border-b ${activeTheme.border}`}>
+                  <Table.Td className="text-white font-bold">cashier_01</Table.Td>
+                  <Table.Td><Badge color="blue">CASHIER</Badge></Table.Td>
+                  <Table.Td className="text-gray-300">MORNING SHIFT (08:00 - 16:00)</Table.Td>
+                  <Table.Td><Badge color="teal" variant="dot">Online Active</Badge></Table.Td>
+                </Table.Tr>
+                <Table.Tr className={`border-b ${activeTheme.border}`}>
+                  <Table.Td className="text-white font-bold">manager_admin</Table.Td>
+                  <Table.Td><Badge color="grape">ADMIN / MANAGER</Badge></Table.Td>
+                  <Table.Td className="text-gray-300">NIGHT SHIFT (16:00 - 00:00)</Table.Td>
+                  <Table.Td><Badge color="gray" variant="dot">Offline</Badge></Table.Td>
+                </Table.Tr>
+              </Table.Tbody>
+            </Table>
+          </Paper>
+        ):(
+            /* အရောင်းမှတ်တမ်း၊ အင်ဗင်ထရီ နှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
+            <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
+              <IconBox size={64} className="text-gray-500 mb-4" />
+              <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
+            </Paper>
+          )}
       </main>
 
       {/* 💡 FIXED: activeView === 'counter' ဖြစ်မှသာ ညာဘက်ခြမ်း Checkout Sidebar Panel အား ချပြခိုင်းခြင်း ⭐ */}

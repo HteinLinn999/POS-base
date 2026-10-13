@@ -3,7 +3,7 @@ datasource db {
 }
 
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 // ၁။ ဝန်ထမ်းများ (RBAC စနစ်)
@@ -36,30 +36,32 @@ enum SaleType {
 
 // ၄။ City Mart စံပြ ကုန်ပစ္စည်း Table
 model Product {
-  id                String            @id @default(uuid())
+  id                String               @id @default(uuid())
   name              String
-  barcode           String            @unique // စက်ပြင် Barcode ဖတ်ရန် Unique ထားရမည်
-  sku               String            @unique
+  barcode           String               @unique // စက်ပြင် Barcode ဖတ်ရန် Unique ထားရမည်
+  sku               String               @unique
   price             Float // ရောင်းဈေး
   cost              Float // ရင်းဈေး (အမြတ်တွက်ရန်)
-  stockQuantity     Float             @default(0) // WEIGHT အတွက် ဒသမပါနိုင်၍ Float သုံးသည်
-  saleType          SaleType          @default(UNIT)
+  stockQuantity     Float                @default(0) // WEIGHT အတွက် ဒသမပါနိုင်၍ Float သုံးသည်
+  saleType          SaleType             @default(UNIT)
   unitOfMeasurement String // Pcs, Kg, Pack
-  isAlcohol         Boolean           @default(false)
+  isAlcohol         Boolean              @default(false)
   expiryDate        DateTime? // သက်တမ်းကုန်မည့်ရက်
   categoryId        String
-  category          Category          @relation(fields: [categoryId], references: [id])
+  category          Category             @relation(fields: [categoryId], references: [id])
   orderItems        OrderItem[]
   stockHistories    StockHistory[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  branchStocks      ProductBranchStock[] // ဆိုင်အလိုက် လက်ကျန်များ ချိတ်ဆက်ခြင်း
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 }
 
 // ၅။ ပစ္စည်းအဝင်/အထွက် စာရင်း (Inventory Tracking)
 enum StockTransactionType {
   STOCK_IN // ပစ္စည်းအသစ်ဝင်ခြင်း
   STOCK_OUT // ရောင်းထွက်ခြင်း
-  ADJUSTMENT // စာရင်းစစ်ပြီး အတိုးအလျှော့လုပ်ခြင်း
+  ADDING // (သို့) စာရင်းစစ်ပြီး အတိုးအလျှော့လုပ်ခြင်း
+  ADJUSTMENT
 }
 
 model StockHistory {
@@ -72,16 +74,22 @@ model StockHistory {
   createdAt       DateTime             @default(now())
 }
 
-// ၆။ အရောင်းဘောက်ချာ (Invoices)
+// ၆။ အရောင်းဘောက်ချာ (Invoices) - 🔗 branchId ထည့်သွင်းပြီး အပြည့်အစုံ
 model Order {
   id            String      @id @default(uuid())
   invoiceNo     String      @unique
   totalAmount   Float
   cashReceived  Float
   changeGiven   Float
-  paymentMethod String // Cash, KPay, Wave
+  paymentMethod String      // Cash, KPay, Wave
+  
   cashierId     String
   cashier       User        @relation(fields: [cashierId], references: [id])
+  
+  // 🔗 အသစ်တိုးလိုက်သော ဆိုင်ခွဲ (Branch) ချိတ်ဆက်မှု Field
+  branchId      String
+  branch        Branch      @relation(fields: [branchId], references: [id])
+
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
 }
@@ -95,4 +103,33 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id])
   quantity  Float
   unitPrice Float // ထိုအချိန်က ရောင်းလိုက်သည့် ဈေးနှုန်း
+}
+
+// ၈။ ဆိုင်ခွဲများ (Branches) Table
+model Branch {
+  id        String   @id @default(uuid())
+  name      String   @unique // ဥပမာ - "City Mart - Junction Square"
+  code      String   @unique // ဥပမာ - "BR-YGN-01"
+  address   String?
+  
+  // ဆိုင်ခွဲတစ်ခုချင်းစီနှင့် ချိတ်ဆက်မှုများ
+  products  ProductBranchStock[] 
+  orders    Order[]              
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ၉။ ဆိုင်အလိုက် ကုန်ပစ္စည်းလက်ကျန် (Multi-Store Stock Tracking) Table
+model ProductBranchStock {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  quantity  Float   @default(0) // ထိုဆိုင်ခွဲတွင် ရှိသော ကုန်ပစ္စည်းလက်ကျန် အရေအတွက်
+
+  @@unique([productId, branchId]) // ပစ္စည်းတစ်ခုသည် ဆိုင်ခွဲတစ်ခုချင်းစီတွင် တစ်ကြောင်းစီသာ ရှိရမည်
 }
