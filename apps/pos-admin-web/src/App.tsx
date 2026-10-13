@@ -26,10 +26,15 @@ import {
   IconBox,
   IconHistory,
   IconUser,
-  IconPrinter
+  IconPrinter,
+  IconUsers,
+  IconSettings,
+  IconMinus,
+  IconPlus,
+  IconTrash
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
-import { useCartStore } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
+import { useCartStore, type ActiveView } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
 
 import { api } from './api/axios';
 interface IThemeConfig {
@@ -95,9 +100,11 @@ function App() {
     fetchSalesOrders,
     salesOrders,
     categories,
-    lowStockItems
-  }
-    = useCartStore();
+    lowStockItems,
+    //အသစ်တိုးတာတွေနော်
+    removeItem,
+    updateQuantity,
+  } = useCartStore();
 
   const [currentUser, setCurrentUser] =
     useState<{ name: string; shift: string }>({
@@ -272,65 +279,27 @@ function App() {
 
           {/* Menu Links List - activeView အပေါ်မူတည်၍ တကယ့် Highlight အစစ်အမှန် လင်းစေမည့်စနစ် 🎯 ⭐ */}
           <div className="mt-4 flex w-full flex-col gap-2">
-            <Button
-              variant={activeView === 'counter' ? 'filled' : 'subtle'}
-              color={activeView === 'counter' ? activeTheme.badgeColor : 'gray'}
-              size="md"
-              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
-              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'counter'
-                ? 'bg-cyan-600 text-white font-bold shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
-                }`}
-              leftSection={<IconShoppingCart size={22} />}
-              onClick={() => setActiveView('counter')}
-            >
-              <span className="text-base font-medium">အရောင်းကောင်တာ</span>
-            </Button>
+            {[
+              { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
+              { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
+              { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
+              { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> }, // အသစ်
+              { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> }, // အသစ်
+              { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> }, // အသစ်
+            ].map((menu) => (
+              <Button
+                key={menu.id}
+                variant={activeView === menu.id ? 'filled' : 'subtle'}
+                color={activeView === menu.id ? activeTheme.badgeColor : 'gray'}
+                className="h-11 justify-start"
+                size="md"
+                leftSection={menu.icon}
+                onClick={() => setActiveView(menu.id as ActiveView)}
+              >
+                <span className="text-base font-medium">  {menu.label}</span>
+              </Button>
+            ))}
 
-            <Button
-              variant={activeView === 'inventory' ? 'filled' : 'subtle'}
-              color={activeView === 'inventory' ? activeTheme.badgeColor : 'gray'}
-              size="md"
-              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
-              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'inventory'
-                ? 'bg-cyan-600 text-white font-bold shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
-                }`}
-              leftSection={<IconBox size={22} />}
-              onClick={() => setActiveView('inventory')}
-            >
-              <span className="text-base font-medium">ပစ္စည်းအဝင်/အထွက်</span>
-            </Button>
-
-            <Button
-              variant={activeView === 'history' ? 'filled' : 'subtle'}
-              color={activeView === 'history' ? activeTheme.badgeColor : 'gray'}
-              size="md"
-              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
-              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'history'
-                ? 'bg-cyan-600 text-white font-bold shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
-                }`}
-              leftSection={<IconHistory size={22} />}
-              onClick={() => setActiveView('history')}
-            >
-              <span className="text-base font-medium">အရောင်းမှတ်တမ်း</span>
-            </Button>
-
-            <Button
-              variant={activeView === 'staff' ? 'filled' : 'subtle'}
-              color={activeView === 'staff' ? activeTheme.badgeColor : 'gray'}
-              size="md"
-              /* 🔗 FIXED: activeView ကိုက်ညီပါက Background အား Active Theme အရောင်အတိုင်း တောက်ခနဲ လင်းခိုင်းခြင်း 🎯 */
-              className={`h-12 w-full justify-start transition-all duration-200 ${activeView === 'staff'
-                ? 'bg-cyan-600 text-white font-bold shadow-md'
-                : 'text-gray-400 hover:text-white hover:bg-[#2e303a]'
-                }`}
-              leftSection={<IconUser size={22} />}
-              onClick={() => setActiveView('staff')}
-            >
-              <span className="text-base font-medium">ဝန်ထမ်းစီမံရန်</span>
-            </Button>
           </div>
 
         </div>
@@ -428,12 +397,13 @@ function App() {
                   <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
                   <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
                   <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+                  <Table.Th className="text-gray-400 text-center">လုပ်ဆောင်ချက်</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {cartItems.length === 0 ? (
                   <Table.Tr>
-                    <Table.Td colSpan={6} className="border-none py-20 text-center text-gray-400">
+                    <Table.Td colSpan={7} className="border-none py-20 text-center text-gray-400">
                       <div className="flex flex-col items-center gap-3">
                         <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
                         <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
@@ -448,6 +418,13 @@ function App() {
                       <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
                       <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
                       <Table.Td>
+                        <Group justify="center" gap="xs">
+                          <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity - 1)}><IconMinus size={14} /></ActionIcon>
+                          <Badge variant="light" size="lg" color="cyan" className="font-mono font-bold">
+                            {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
+                          </Badge>
+                          <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity + 1)}><IconPlus size={14} /></ActionIcon>
+                        </Group>
                         <Badge
                           color={item.stockQuantity <= 10 ? 'red' : 'gray'}
                           variant={item.stockQuantity <= 10 ? 'filled' : 'light'}
@@ -459,12 +436,11 @@ function App() {
                         </Badge>
                       </Table.Td>
 
-                      <Table.Td>
-                        <Badge color={item.saleType === SaleType.WEIGHT ? 'teal' : activeTheme.badgeColor} variant="light" size="lg">
-                          {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
-                        </Badge>
-                      </Table.Td>
+
                       <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
+                      <Table.Td className="text-center">
+                        <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)} title="ပယ်ဖျက်ရန်"><IconTrash size={18} /></ActionIcon>
+                      </Table.Td>
                     </Table.Tr>
                   ))
                 )}
@@ -472,146 +448,146 @@ function App() {
             </Table>
           </Paper>
         ) : activeView === 'history' ? (
-  /* 📊 အရောင်းမှတ်တမ်း Grid View Layout — SCROLLABLE VERSION ⭐ */
-   <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
-  
+          /* 📊 အရောင်းမှတ်တမ်း Grid View Layout — SCROLLABLE VERSION ⭐ */
+          <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
 
-    {/* 📈 ၁။ Stat Cards — shrink-0 ထည့်ထားသည် (ကျုံ့မသွားစေရ) */}
-    <div className="grid grid-cols-3 gap-4 shrink-0">
-      <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-        <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
-        <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
-          {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
-        </Text>
-      </Paper>
 
-      <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-        <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
-        <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
-          {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
-        </Text>
-      </Paper>
+            {/* 📈 ၁။ Stat Cards — shrink-0 ထည့်ထားသည် (ကျုံ့မသွားစေရ) */}
+            <div className="grid grid-cols-3 gap-4 shrink-0">
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
+                <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
+                  {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
+                </Text>
+              </Paper>
 
-      <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-        <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
-        <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
-          {salesOrders.length > 0
-            ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
-            : 0
-          } <span className="text-xs font-bold">MMK</span>
-        </Text>
-      </Paper>
-    </div>
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
+                <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
+                  {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
+                </Text>
+              </Paper>
 
-    {/* 📊 ၂။ Charts — shrink-0 ထည့်ထားသည် */}
-    {salesOrders.length > 0 && (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-        <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
-          <div className="mb-4">
-            <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
-            <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
+              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+                <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
+                <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
+                  {salesOrders.length > 0
+                    ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
+                    : 0
+                  } <span className="text-xs font-bold">MMK</span>
+                </Text>
+              </Paper>
+            </div>
+
+            {/* 📊 ၂။ Charts — shrink-0 ထည့်ထားသည် */}
+            {salesOrders.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
+                  <div className="mb-4">
+                    <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
+                    <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
+                  </div>
+
+                  <BarChart
+                    h={220}
+                    data={salesOrders.map((order) => ({
+                      date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
+                      "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
+                    })).reverse()}
+                    dataKey="date"
+                    series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
+                    tickLine="y"
+                    gridAxis="x"
+                    textColor="#9ca3af"
+                    className="font-mono text-xs"
+                  />
+                </Paper>
+
+                <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
+                  <div className="mb-4">
+                    <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
+                    <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
+                  </div>
+
+                  <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
+                    <DonutChart
+                      size={140}
+                      thickness={20}
+                      data={[
+                        { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
+                        { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
+                        { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
+                      ]}
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                </Paper>
+              </div>
+            )}
+
+            <Paper
+              className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`}
+              radius="md"
+            >
+              <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+                <Table.Thead className={`${activeTheme.bg}`}>
+                  <Table.Tr>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
+                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {salesOrders.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
+                        <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ) : (
+                    salesOrders.map((order) => (
+                      <Table.Tr
+                        key={order.id}
+                        className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          openDetail();
+                        }}
+                      >
+                        <Table.Td className="font-mono text-white font-bold">
+                          {order.invoiceNo}
+                        </Table.Td>
+
+                        <Table.Td className="text-gray-300">
+                          {new Date(order.createdAt).toLocaleString('en-MM')}
+                        </Table.Td>
+
+                        <Table.Td>
+                          <Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge>
+                        </Table.Td>
+
+                        <Table.Td className="font-mono text-gray-400">
+                          {Number(order.cashReceived || 0).toLocaleString()} MMK
+                        </Table.Td>
+
+                        <Table.Td className="font-mono text-gray-400">
+                          {Number(order.changeGiven || 0).toLocaleString()} MMK
+                        </Table.Td>
+
+                        <Table.Td className="font-semibold text-[#10b981] font-mono">
+                          {Number(order.totalAmount || 0).toLocaleString()} MMK
+                        </Table.Td>
+                      </Table.Tr>
+                    ))
+                  )}
+                </Table.Tbody>
+              </Table>
+            </Paper>
           </div>
-
-          <BarChart
-            h={220}
-            data={salesOrders.map((order) => ({
-              date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
-              "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
-            })).reverse()}
-            dataKey="date"
-            series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
-            tickLine="y"
-            gridAxis="x"
-            textColor="#9ca3af"
-            className="font-mono text-xs"
-          />
-        </Paper>
-
-        <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
-          <div className="mb-4">
-            <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
-            <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
-          </div>
-
-          <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
-            <DonutChart
-              size={140}
-              thickness={20}
-              data={[
-                { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
-                { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
-                { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
-              ]}
-              className="font-mono text-xs"
-            />
-          </div>
-        </Paper>
-      </div>
-    )}
-    
-    <Paper
-      className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`}
-      radius="md"
-    >
-      <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
-        <Table.Thead className={`${activeTheme.bg}`}>
-          <Table.Tr>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
-            <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {salesOrders.length === 0 ? (
-            <Table.Tr>
-              <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
-                <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
-              </Table.Td>
-            </Table.Tr>
-          ) : (
-            salesOrders.map((order) => (
-              <Table.Tr
-                key={order.id}
-                className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
-                onClick={() => {
-                  setSelectedOrder(order);
-                  openDetail();
-                }}
-              >
-                <Table.Td className="font-mono text-white font-bold">
-                  {order.invoiceNo}
-                </Table.Td>
-
-                <Table.Td className="text-gray-300">
-                  {new Date(order.createdAt).toLocaleString('en-MM')}
-                </Table.Td>
-
-                <Table.Td>
-                  <Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge>
-                </Table.Td>
-
-                <Table.Td className="font-mono text-gray-400">
-                  {Number(order.cashReceived || 0).toLocaleString()} MMK
-                </Table.Td>
-
-                <Table.Td className="font-mono text-gray-400">
-                  {Number(order.changeGiven || 0).toLocaleString()} MMK
-                </Table.Td>
-
-                <Table.Td className="font-semibold text-[#10b981] font-mono">
-                  {Number(order.totalAmount || 0).toLocaleString()} MMK
-                </Table.Td>
-              </Table.Tr>
-            ))
-          )}
-        </Table.Tbody>
-      </Table>
-    </Paper>
-  </div>
-) : activeView === 'inventory' ? (
+        ) : activeView === 'inventory' ? (
           /* 📦 အဆင့် ၁၇ — 🔗 FIXED: keyboardType အမှားများအားလုံးအား မန်တင်း NumberInput စံနှုန်းစစ်စစ်ဖြင့် အစားထိုးပြင်ဆင်ပြီးပါပြီ 🎯 ⭐ */
           <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
             <div className="mb-6">
@@ -678,7 +654,67 @@ function App() {
               </Group>
             </form>
           </Paper>
-        ) : (
+        ): activeView === 'crm' ? (
+  <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+    <div className="mb-6">
+      <Text size="xl" fw={800} className="text-white">CUSTOMER RELATIONSHIP MANAGEMENT (CRM & Loyalty)</Text>
+      <Text size="xs" className="text-gray-400 mt-1">ဖောက်သည်အသင်းဝင်များ၏ အချက်အလက်များနှင့် သစ္စာစောင့်သိမှုအမှတ်များကို စီမံခန့်ခွဲရန်</Text>
+    </div>
+    <Table verticalSpacing="md" horizontalSpacing="lg">
+      <Table.Thead className={activeTheme.bg}>
+        <Table.Tr>
+          <Table.Th className="text-gray-400">ဖောက်သည်အမည်</Table.Th>
+          <Table.Th className="text-gray-400">ဖုန်းနံပါတ်</Table.Th>
+          <Table.Th className="text-gray-400">အသင်းဝင်အဆင့် (Tier)</Table.Th>
+          <Table.Th className="text-gray-400">စုဆောင်းရရှိած အမှတ် (Points)</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        <Table.Tr className={`border-b ${activeTheme.border}`}>
+          <Table.Td className="text-white font-bold">ဦးမောင်မောင်</Table.Td>
+          <Table.Td className="font-mono text-gray-300">09-912345678</Table.Td>
+          <Table.Td><Badge color="orange">GOLD MEMBER</Badge></Table.Td>
+          <Table.Td className="font-mono text-[#10b981] font-bold">1,250 PTS</Table.Td>
+        </Table.Tr>
+      </Table.Tbody>
+    </Table>
+  </Paper>
+) : activeView === 'staff' ? (
+  /* 👨‍💼 Staff Management Dashboard View အသစ် */
+  <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+    <div className="mb-6">
+      <Text size="xl" fw={800} className="text-white">STAFF MANAGEMENT (ဝန်ထမ်းစီမံခန့်ခွဲမှုစနစ်)</Text>
+      <Text size="xs" className="text-gray-400 mt-1">ကောင်တာဝန်ထမ်းများနှင့် မန်နေဂျာများ၏ တာဝန်ကျချိန်နှင့် အခြေအနေများကို စစ်ဆေးရန်</Text>
+    </div>
+    <Table verticalSpacing="md" horizontalSpacing="lg">
+      <Table.Thead className={activeTheme.bg}>
+        <Table.Tr>
+          <Table.Th className="text-gray-400">အကောင့်အမည် (Username)</Table.Th>
+          <Table.Th className="text-gray-400">ရာထူး (Role)</Table.Th>
+          <Table.Th className="text-gray-400">တာဝန်ကျချိန် (Shift)</Table.Th>
+          <Table.Th className="text-gray-400">အခြေအနေ (Status)</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        <Table.Tr className={`border-b ${activeTheme.border}`}>
+          <Table.Td className="text-white font-bold">cashier_01</Table.Td>
+          <Table.Td><Badge color="blue">CASHIER</Badge></Table.Td>
+          <Table.Td className="text-gray-300">MORNING SHIFT (08:00 - 16:00)</Table.Td>
+          <Table.Td><Badge color="teal" variant="dot">Online Active</Badge></Table.Td>
+        </Table.Tr>
+        <Table.Tr className={`border-b ${activeTheme.border}`}>
+          <Table.Td className="text-white font-bold">manager_admin</Table.Td>
+          <Table.Td><Badge color="grape">ADMIN / MANAGER</Badge></Table.Td>
+          <Table.Td className="text-gray-300">NIGHT SHIFT (16:00 - 00:00)</Table.Td>
+          <Table.Td><Badge color="gray" variant="dot">Offline</Badge></Table.Td>
+        </Table.Tr>
+      </Table.Tbody>
+    </Table>
+  </Paper>
+) 
+        : 
+        
+        (
           /* အရောင်းမှတ်တမ်း၊ အင်ဗင်ထရီ နှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
           <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
             <IconBox size={64} className="text-gray-500 mb-4" />
