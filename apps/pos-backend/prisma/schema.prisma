@@ -92,6 +92,9 @@ model Order {
 
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
+
+  customerId String?
+  customer Customer? @relation(fields: [customerId], references: [id])
 }
 
 // ၇။ ဘောက်ချာတစ်ခုချင်းစီ၏ အသေးစိတ် ပစ္စည်းစာရင်း
@@ -118,6 +121,18 @@ model Branch {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+// ဖောက်သည်အသင်းဝင်များ (Customer Loyalty & CRM)
+model Customer {
+  id           String   @id @default(uuid())
+  name         String
+  phone        String   @unique // ဖုန်းနံပါတ်ဖြင့် မန်ဘာရှာဖွေရန်
+  tier         String   @default("REGULAR") // REGULAR, SILVER, GOLD, PLATINUM
+  points       Float    @default(0)   // စုဆောင်းရရှိထားသော အမှတ်များ
+  totalSpent   Float    @default(0)   // စုစုပေါင်း ဝယ်ယူခဲ့သည့်ပမာဏ
+  orders       Order[]  // ထိုဖောက်သည် ဝယ်ယူခဲ့သော ဘောက်ချာများ
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // ၉။ ဆိုင်အလိုက် ကုန်ပစ္စည်းလက်ကျန် (Multi-Store Stock Tracking) Table

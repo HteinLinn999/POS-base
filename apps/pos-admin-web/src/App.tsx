@@ -14,7 +14,7 @@ import {
   Select,
   Divider,
 } from '@mantine/core';
-import { BarChart, DonutChart } from '@mantine/charts'
+import { BarChart, DonutChart } from '@mantine/charts';
 import { notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -34,9 +34,10 @@ import {
   IconTrash
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
-import { useCartStore, type ActiveView } from './store/useCartStore'; // Zustand အား စနစ်တကျ Import ခေါ်ယူခြင်း ⭐
+import { useCartStore, type ActiveView } from './store/useCartStore';
 
 import { api } from './api/axios';
+
 interface IThemeConfig {
   id: string;
   name: string;
@@ -58,25 +59,17 @@ const POS_THEMES: IThemeConfig[] = [
 
 function App() {
   const [barcode, setBarcode] = useState<string>('');
-
-  //default theme
   const [activeTheme, setActiveTheme] = useState<IThemeConfig>(POS_THEMES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-
-  // 🛒 အသစ် — ငွေရှင်းရာတွင် ဝယ်သူပေးငွေနှင့် Payment Method စစ်ဆေးရန် UI States ⭐
   const [cashReceived, setCashReceived] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Mantine Modal State Control (စလစ်ပြသရန် ဖွင့်/ပိတ် ခလုတ်) ⭐
   const [opened, { open, close }] = useDisclosure(false);
-
   const [detailOpened, { open: openDetail, close: closeDetail }] = useDisclosure(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-
-  //form for import and export items
   const [prodName, setProdName] = useState<string>('');
   const [prodBarcode, setProdBarcode] = useState<string>('');
   const [prodSku, setProdSku] = useState<string>('');
@@ -85,7 +78,7 @@ function App() {
   const [prodStock, setProdStock] = useState<number | string>('');
   const [prodSaleType, setProdSaleType] = useState<string>('UNIT');
   const [prodUnit, setProdUnit] = useState<string>('Pcs');
-  const [prodCategoryId, setProdCategoryId] = useState<string>('9f074d0e-953e-4b40-9a3d-425886616238'); // Dynamic FK Placeholder
+  const [prodCategoryId, setProdCategoryId] = useState<string>('9f074d0e-953e-4b40-9a3d-425886616238');
   const [formLoading, setFormLoading] = useState<boolean>(false);
 
   const {
@@ -101,22 +94,51 @@ function App() {
     salesOrders,
     categories,
     lowStockItems,
-    //အသစ်တိုးတာတွေနော်
     removeItem,
     updateQuantity,
+    selectedCustomer,
+    setSelectedCustomer,
+    searchCustomerByPhone
   } = useCartStore();
 
-  const [currentUser, setCurrentUser] =
-    useState<{ name: string; shift: string }>({
-      name: 'cashier_01',
-      shift: 'MORNING SHIFT'
-    });
+  // 1. Store မှ fetchBranches နှင့် branches များကို ယူသုံးရန်
+  const { branches, fetchBranches, currentBranchId, setCurrentBranchId } = useCartStore();
+
+  // 2. App စတင် တင်ვიလာချိန် (Mount ဖြစ်ချိန်) တွင် တစ်ကြိမ်တည်း Branch များကို လှမ်းဆွဲရန်
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
+
+  // 3. Select အတွက် data ကို သီးသန့် variable ဖြင့် ပြင်ဆင်ခြင်း (Infinite Loop မတက်စေရန်)
+  const branchDropdownData = branches.map((b: any) => ({
+    value: b.id,
+    label: `${b.name} (${b.code})`
+  }));
+
+  const [memberModalOpened, { open: openMemberModal, close: closeMemberModal }] = useDisclosure(false);
+  const [searchPhone, setSearchPhone] = useState<string>('');
+
+  const [currentUser, setCurrentUser] = useState<{ name: string; shift: string }>({
+    name: 'cashier_01',
+    shift: 'MORNING SHIFT'
+  });
+
 
   useEffect(() => {
-    inputRef.current?.focus();
+    if (!opened && !memberModalOpened) {
+      inputRef.current?.focus();
+    }
+
     useCartStore.getState().fetchLowStockItems();
-    if (activeView === 'history') fetchSalesOrders();
-  }, [activeView, fetchSalesOrders]);
+    if (activeView === 'history') {
+      fetchSalesOrders();
+    }
+  }, [activeView, fetchSalesOrders, opened, memberModalOpened]);
+
+
+  useEffect(() => {
+    fetchBranches();
+  }, [fetchBranches]);
 
   useEffect(() => {
     if (activeView === 'inventory') {
@@ -124,17 +146,20 @@ function App() {
     }
   }, [activeView]);
 
-  // Keyboard shortcut အဖြစ် F12 နှိပ်ပါက မောက်စ်မကိုင်ဘဲ ငွေရှင်းစလစ် တန်းပွင့်လာစေရန် ⭐
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
         e.preventDefault();
         if (cartItems.length > 0) open();
       }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        openMemberModal();
+      }
       if (e.key === 'Escape') {
         if (cartItems.length > 0) {
           e.preventDefault();
-          clearCart(); // ခြင်းတောင်းအားလုံး ဖျက်ဆီးခြင်း
+          clearCart();
           notifications.show({
             title: 'ခြင်းတောင်း ရှင်းလင်းပြီးပါပြီ 🧹',
             message: 'ခြင်းတောင်းထဲရှိ ပစ္စည်းစာရင်းများအားလုံးကို ရှင်းလင်းလိုက်ပါသည်',
@@ -142,14 +167,11 @@ function App() {
           });
         }
       }
-
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cartItems, open, clearCart]);
 
-
-  // Modal ပွင့်လာလျှင် ကျသင့်ငွေအား ဝယ်သူပေးငွေနေရာတွင် အလိုအလျောက် default အဆင်သင့် ဖြည့်ပေးထားခြင်း
   useEffect(() => {
     if (opened) {
       const totalAmount = cartItems.reduce((sum: number, item) => sum + item.total, 0);
@@ -157,8 +179,25 @@ function App() {
     }
   }, [opened, cartItems]);
 
+
+  //  const [branches, setBranches] = useState<any[]>([]);
+
+  // Component Mount ဖြစ်ချိန်တွင် Backend မှ Branch များကို လှမ်းဆွဲရန်
+  // useEffect(() => {
+  //   api.get('/branches')
+  //     .then((res) => {
+  //       if (res.data && res.data.length > 0) {
+  //         setBranches(res.data);
+  //         // ပထမဆုံး Branch ကို Default အနေဖြင့် သတ်မှတ်ပေးခြင်း (မရှိသေးပါက)
+  //         if (!currentBranchId) {
+  //           setCurrentBranchId(res.data[0].id);
+  //         }
+  //       }
+  //     })
+  //     .catch((err) => console.error("Branch ဆွဲယူရာတွင် အမှားရှိပါသည်", err));
+  // }, [currentBranchId, setCurrentBranchId]);
+
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
-    //const handleBarcodeSubmit = async (e: React.ChangeEvent) => {
     e.preventDefault();
     if (!barcode.trim()) return;
 
@@ -171,43 +210,31 @@ function App() {
         icon: <IconShoppingCart size={16} />,
       });
     } catch (error: any) {
-      const msg =
-        error?.response?.data?.message     // NestJS error body
-        ?? error?.message                   // Network error
-        ?? 'မသိသော အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်';
-
+      const msg = error?.response?.data?.message ?? error?.message ?? 'မသိသော အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်';
       notifications.show({
         title: 'အရောင်းအမှား',
-        message: Array.isArray(msg) ? msg.join(', ') : msg, // NestJS ValidationPipe array ပြန်နိုင်
+        message: Array.isArray(msg) ? msg.join(', ') : msg,
         color: 'red',
         icon: <IconBarcode size={16} />,
       });
     }
-
     setBarcode('');
   };
 
   const grandTotal = cartItems.reduce((sum: number, item) => sum + item.total, 0);
   const changeGiven = Number(cashReceived) - grandTotal;
 
-
-  // 🚀 အသစ် — ငွေရှင်းခလုတ် နှိပ်လိုက်သည့်အခါ တကယ့် PostgreSQL DB ထဲသို့ သွားသိမ်းပြီးမှ ပရင့်ထုတ်မည့် စနစ် ⭐
   const handleFinalCheckout = async () => {
     setLoading(true);
     try {
-      // ၁။ Zustand မှတစ်ဆင့် Backend API Transaction စနစ်သို့ လှမ်းပို့သိမ်းခိုင်းခြင်း 🎯
       await submitCheckout(Number(cashReceived), paymentMethod);
-
-      // ၂။ DB ထဲတွင် အောင်မြင်စွာ သိမ်းဆည်းပြီးမှသာ စက်ပြင် Thermal Printer အား ပရင့်ထုတ်ခိုင်းခြင်း
       window.print();
-
       notifications.show({
         title: 'အရောင်းအောင်မြင်ပါသည်',
         message: 'ဘောက်ချာအား ဒေတာဘေ့စ်ထဲ သိမ်းဆည်းပြီး ပရင့်ထုတ်ပြီးပါပြီ',
         color: 'green',
         icon: <IconReceipt size={16} />,
       });
-
       clearCart();
       close();
     } catch (error: any) {
@@ -231,7 +258,6 @@ function App() {
 
     setFormLoading(true);
     try {
-      // Nest.js Backend ၏ create product endpoint ဆီသို့ တိုက်ရိုက် လှမ်းအော်ပို့လွှတ်ခြင်း 🎯
       await api.post('/products', {
         name: prodName,
         barcode: prodBarcode,
@@ -245,8 +271,6 @@ function App() {
       });
 
       notifications.show({ title: 'သိမ်းဆည်းပြီးပါပြီ 🟢', message: `ကုန်ပစ္စည်း: ${prodName} အား ဒေတာဘေ့စ်ထဲသို့ အောင်မြင်စွာ ထည့်သွင်းပြီးပါပြီ`, color: 'teal' });
-
-      // အောင်မြင်ပါက Form ခွက်များအားအကုန်လုံး သန့်ရှင်းရေး Reset ပြန်ချပေးခြင်း
       setProdName(''); setProdBarcode(''); setProdSku(''); setProdPrice(''); setProdCost(''); setProdStock('');
     } catch (error: any) {
       const msg = error.response?.data?.message || 'ပစ္စည်းအသစ်ဆောက်မှု ကျရှုံးပါသည်';
@@ -256,19 +280,10 @@ function App() {
     }
   };
 
-  // console.log('salesOrders :' + salesOrders.length)
-  {
-    salesOrders.map((order) => {
-      // console.log('order.invoiceNo :' + order.invoiceNo)
-    })
-  }
-
   return (
     <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
-      {/* 🔴 ၁။ ဘယ်ဘက်ခြမ်း - အဆင့်မြှင့်တင်ထားသော ဒိုင်နမစ် Navigation Navbar */}
       <nav
-        className={`${activeTheme.panel} flex h-full shrink-0 flex-col justify-between overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out print:hidden ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'
-          }`}
+        className={`${activeTheme.panel} flex h-full shrink-0 flex-col justify-between overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out print:hidden ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'}`}
         aria-hidden={!isLeftNavOpen}
       >
         <div className="flex flex-col w-full gap-6">
@@ -277,15 +292,14 @@ function App() {
             <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
           </div>
 
-          {/* Menu Links List - activeView အပေါ်မူတည်၍ တကယ့် Highlight အစစ်အမှန် လင်းစေမည့်စနစ် 🎯 ⭐ */}
           <div className="mt-4 flex w-full flex-col gap-2">
             {[
               { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
               { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
               { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
-              { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> }, // အသစ်
-              { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> }, // အသစ်
-              { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> }, // အသစ်
+              { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
+              { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
+              { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
             ].map((menu) => (
               <Button
                 key={menu.id}
@@ -296,17 +310,13 @@ function App() {
                 leftSection={menu.icon}
                 onClick={() => setActiveView(menu.id as ActiveView)}
               >
-                <span className="text-base font-medium">  {menu.label}</span>
+                <span className="text-base font-medium">{menu.label}</span>
               </Button>
             ))}
-
           </div>
-
         </div>
 
-        {/* 👤 အဆင့် ၂၄ FIXED: ပုံသေ (Hardcode) စာသားအစား ၎င်းနေရာအား currentUser State အမှန်ဖြင့် ဒိုင်နမစ် ချိတ်ဆက်ပြသခြင်း 🎯 ⭐ */}
         <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] overflow-hidden cursor-pointer hover:bg-[#1f2028]" onClick={() => {
-          // ဝန်ထမ်းအကောင့်များအား ကလစ်နှိပ်ရုံဖြင့် အပြန်အလှန် ဒိုင်နမစ် Shift ဂျာစာရင်း ပြောင်းလဲစမ်းသပ်ခိုင်းခြင်း
           setCurrentUser(prev => ({
             name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
             shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
@@ -323,20 +333,14 @@ function App() {
             </div>
           </Group>
         </div>
-
       </nav>
 
-
-      {/* 🟢 ၂။ အလယ်ခြမ်း - Active View အပေါ်မူတည်ပြီး ကွက်တိ ဒိုင်နမစ် ပြောင်းလဲမည့် မျက်နှာပြင်ပြကွက် */}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden p-6 print:hidden">
-
-        {/* Top Action Bar */}
         <div className="mb-6 flex items-center gap-4">
           <ActionIcon variant="light" color="cyan" size="xl" radius="md" onClick={toggleLeftNav} title="ဘယ်ဘက် Sidebar ဖွင့်/ပိတ်ရန်">
             <IconMenu2 size={24} />
           </ActionIcon>
 
-          {/* အရောင်းကောင်တာ မျက်နှာပြင်ဖြစ်မှသာ Barcode Input Form အား ပြသခိုင်းခြင်း ⭐ */}
           {activeView === 'counter' && (
             <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1">
               <TextInput
@@ -347,12 +351,6 @@ function App() {
                 radius="md"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                onBlur={() => {
-                  if (!opened) {
-                    inputRef.current?.focus();
-                  }
-                }}
-
                 styles={{
                   input: {
                     backgroundColor: activeTheme.inputBg,
@@ -360,13 +358,30 @@ function App() {
                     fontSize: '16px',
                   },
                 }}
-
               />
             </form>
           )}
           {activeView !== 'counter' && <div className="flex-1"><Text size="xl" className="text-white font-bold capitalize">{activeView} Dashboard</Text></div>}
 
-          {/* Theme Selector Menu */}
+          <Select
+            placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
+            data={branchDropdownData}
+            value={currentBranchId}
+            onChange={(val) => {
+              if (val) {
+                setCurrentBranchId(val);
+                notifications.show({
+                  title: 'ဆိုင်ခွဲပြောင်းလဲပြီးပါပြီ 🟢',
+                  message: 'လက်ရှိရောင်းချမည့် ဆိုင်ခွဲကို အောင်မြင်စွာ ပြောင်းလိုက်ပါပြီ',
+                  color: 'teal'
+                });
+              }
+            }}
+            styles={{
+              input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '280px' }
+            }}
+          />
+
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
               <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်"><IconPalette size={24} /></ActionIcon>
@@ -385,7 +400,6 @@ function App() {
           </Menu>
         </div>
 
-        {/* 🔄 activeView 'counter' ဖြစ်ပါက Table ပြမည်၊ မဟုတ်ပါက Placeholder ပြမည့် Dynamic Content Area ⭐ */}
         {activeView === 'counter' ? (
           <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
             <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
@@ -430,13 +444,10 @@ function App() {
                           variant={item.stockQuantity <= 10 ? 'filled' : 'light'}
                           size="sm"
                           className={item.stockQuantity <= 10 ? 'animate-pulse font-bold' : ''}
-                        // လက်ကျန်နည်းပါက အနီရောင်ဖြင့် တုန်ခါသတိပေးခိုင်းခြင်း 🚨
                         >
-                          {item.stockQuantity <= 10 ? `လက်ကျန်ပြတ်လုနီးပါး (${item.stockQuantity})` : `							လက်ကျန်အဆင်ပြေ (${item.stockQuantity})`}
+                          {item.stockQuantity <= 10 ? `လက်ကျန်ပြတ်လုနီးပါး (${item.stockQuantity})` : `လက်ကျန်အဆင်ပြေ (${item.stockQuantity})`}
                         </Badge>
                       </Table.Td>
-
-
                       <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
                       <Table.Td className="text-center">
                         <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)} title="ပယ်ဖျက်ရန်"><IconTrash size={18} /></ActionIcon>
@@ -448,11 +459,7 @@ function App() {
             </Table>
           </Paper>
         ) : activeView === 'history' ? (
-          /* 📊 အရောင်းမှတ်တမ်း Grid View Layout — SCROLLABLE VERSION ⭐ */
           <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
-
-
-            {/* 📈 ၁။ Stat Cards — shrink-0 ထည့်ထားသည် (ကျုံ့မသွားစေရ) */}
             <div className="grid grid-cols-3 gap-4 shrink-0">
               <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
                 <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
@@ -479,7 +486,6 @@ function App() {
               </Paper>
             </div>
 
-            {/* 📊 ၂။ Charts — shrink-0 ထည့်ထားသည် */}
             {salesOrders.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
                 <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
@@ -487,7 +493,6 @@ function App() {
                     <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
                     <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
                   </div>
-
                   <BarChart
                     h={220}
                     data={salesOrders.map((order) => ({
@@ -508,7 +513,6 @@ function App() {
                     <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
                     <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
                   </div>
-
                   <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
                     <DonutChart
                       size={140}
@@ -525,10 +529,7 @@ function App() {
               </div>
             )}
 
-            <Paper
-              className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`}
-              radius="md"
-            >
+            <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
               <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
                 <Table.Thead className={`${activeTheme.bg}`}>
                   <Table.Tr>
@@ -557,29 +558,12 @@ function App() {
                           openDetail();
                         }}
                       >
-                        <Table.Td className="font-mono text-white font-bold">
-                          {order.invoiceNo}
-                        </Table.Td>
-
-                        <Table.Td className="text-gray-300">
-                          {new Date(order.createdAt).toLocaleString('en-MM')}
-                        </Table.Td>
-
-                        <Table.Td>
-                          <Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge>
-                        </Table.Td>
-
-                        <Table.Td className="font-mono text-gray-400">
-                          {Number(order.cashReceived || 0).toLocaleString()} MMK
-                        </Table.Td>
-
-                        <Table.Td className="font-mono text-gray-400">
-                          {Number(order.changeGiven || 0).toLocaleString()} MMK
-                        </Table.Td>
-
-                        <Table.Td className="font-semibold text-[#10b981] font-mono">
-                          {Number(order.totalAmount || 0).toLocaleString()} MMK
-                        </Table.Td>
+                        <Table.Td className="font-mono text-white font-bold">{order.invoiceNo}</Table.Td>
+                        <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
+                        <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
+                        <Table.Td className="font-mono text-gray-400">{Number(order.cashReceived || 0).toLocaleString()} MMK</Table.Td>
+                        <Table.Td className="font-mono text-gray-400">{Number(order.changeGiven || 0).toLocaleString()} MMK</Table.Td>
+                        <Table.Td className="font-semibold text-[#10b981] font-mono">{Number(order.totalAmount || 0).toLocaleString()} MMK</Table.Td>
                       </Table.Tr>
                     ))
                   )}
@@ -588,7 +572,6 @@ function App() {
             </Paper>
           </div>
         ) : activeView === 'inventory' ? (
-          /* 📦 အဆင့် ၁၇ — 🔗 FIXED: keyboardType အမှားများအားလုံးအား မန်တင်း NumberInput စံနှုန်းစစ်စစ်ဖြင့် အစားထိုးပြင်ဆင်ပြီးပါပြီ 🎯 ⭐ */
           <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
             <div className="mb-6">
               <Text size="xl" fw={800} className="text-white">NEW PRODUCT ENTRY (ကုန်ပစ္စည်းအသစ် ထည့်သွင်းခြင်းForm)</Text>
@@ -607,7 +590,6 @@ function App() {
               </div>
 
               <div className="grid grid-cols-3 gap-4">
-                {/* 🔗 NumberInputs များကို သန့်ရှင်းစွာ ချိန်ညှိခြင်း (ကီးဘုတ်ဖြင့် စာရိုက်ပြင်ဆင်၍ ရပါသည်) */}
                 <NumberInput label="ရင်းဈေး (Cost Price)" placeholder="0 MMK" value={prodCost} onChange={(val) => setProdCost(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <NumberInput label="ရောင်းဈေး (Selling Price)" placeholder="0 MMK" value={prodPrice} onChange={(val) => setProdPrice(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <NumberInput label="အစဦးလက်ကျန်အရေအတွက်" placeholder="0" value={prodStock} onChange={(val) => setProdStock(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
@@ -617,7 +599,7 @@ function App() {
                 <Select
                   label="တိုင်းတာသည့်ယူနစ် (Unit)"
                   placeholder="တိုင်းတာသည့် ယူနစ်ရွေးချယ်ပါ"
-                  data={['Pcs', 'Kg', 'Pack', 'Gram', 'Bottle', 'Box']} // City Mart တွင် အသုံးအများဆုံး စံပြယူနစ်စာရင်းများ
+                  data={['Pcs', 'Kg', 'Pack', 'Gram', 'Bottle', 'Box']}
                   value={prodUnit}
                   onChange={(val) => setProdUnit(val || 'Pcs')}
                   styles={{
@@ -628,13 +610,10 @@ function App() {
                 <Select
                   label="ကုန်ပစ္စည်းအုပ်စု (Category)"
                   placeholder={categories.length === 0 ? "Category များအား ဆွဲယူနေပါသည်..." : "ပစ္စည်းအုပ်စု ရွေးချယ်ပါ"}
-
-                  // 🎯 သော့ချက်အဆင့် — ရရှိလာသော ဒေတာများအား မန်တင်းစံနှုန်း Specs အတိုင်း ဒိုင်နမစ် အပိုင် Mapping ပြုလုပ်ပေးခြင်း
                   data={categories.map((cat) => ({
-                    value: String(cat.id),   // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
-                    label: String(cat.name)  // 🔗 String() အုပ်ပြီး သတ်မှတ်လိုက်ခြင်းကြောင့် Framework Error လုံးဝ မတက်တော့ပါ
+                    value: String(cat.id),
+                    label: String(cat.name)
                   }))}
-
                   value={prodCategoryId}
                   onChange={(val) => setProdCategoryId(val || '')}
                   styles={{
@@ -642,7 +621,6 @@ function App() {
                     label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' }
                   }}
                 />
-                {/* <Select label="ကုန်ပစ္စည်းအုပ်စု (Category)" data={[{ value: '9f074d0e-953e-4b40-9a3d-425886616238', label: 'အချိုရည် / စားသောက်ကုန်' }]} value={prodCategoryId} onChange={(val) => setProdCategoryId(val || '')} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} /> */}
               </div>
 
               <Divider color="#2e303a" className="my-2" />
@@ -680,7 +658,6 @@ function App() {
             </Table>
           </Paper>
         ) : activeView === 'staff' ? (
-          /* 👨‍💼 Staff Management Dashboard View အသစ် */
           <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
             <div className="mb-6">
               <Text size="xl" fw={800} className="text-white">STAFF MANAGEMENT (ဝန်ထမ်းစီမံခန့်ခွဲမှုစနစ်)</Text>
@@ -711,16 +688,14 @@ function App() {
               </Table.Tbody>
             </Table>
           </Paper>
-        ):(
-            /* အရောင်းမှတ်တမ်း၊ အင်ဗင်ထရီ နှင့် အရောင်းကောင်တာ မဟုတ်သော ကျန်ရှိသည့် Views များအတွက် Placeholder */
-            <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
-              <IconBox size={64} className="text-gray-500 mb-4" />
-              <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
-            </Paper>
-          )}
+        ) : (
+          <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
+            <IconBox size={64} className="text-gray-500 mb-4" />
+            <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
+          </Paper>
+        )}
       </main>
 
-      {/* 💡 FIXED: activeView === 'counter' ဖြစ်မှသာ ညာဘက်ခြမ်း Checkout Sidebar Panel အား ချပြခိုင်းခြင်း ⭐ */}
       {activeView === 'counter' && (
         <aside className={`${activeTheme.panel} flex h-full w-[380px] shrink-0 flex-col justify-between border-l ${activeTheme.border} p-6 print:hidden`}>
           <div className={`border-b ${activeTheme.border} pb-6`}>
@@ -729,6 +704,30 @@ function App() {
               <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
             </div>
             <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
+
+            <div className={`mt-4 p-3 rounded-lg border ${activeTheme.bg} ${activeTheme.border} mb-4`}>
+              <Text size="xs" fw={700} color="gray" className="mb-2">CUSTOMER LOYALTY (မန်ဘာဖောက်သည်)</Text>
+              {selectedCustomer ? (
+                <div className="flex justify-between items-center bg-[#1f2028] p-2 rounded border border-cyan-800">
+                  <div className="flex flex-col">
+                    <Text size="xs" fw="bold" className="text-white">{selectedCustomer.name}</Text>
+                    <Text size="10px" className="text-cyan-400 font-mono">{selectedCustomer.phone} | {selectedCustomer.tier}</Text>
+                  </div>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => setSelectedCustomer(null)}>ဖယ်ရှားရန်</Button>
+                </div>
+              ) : (
+                <Button
+                  fullWidth
+                  variant="light"
+                  color="cyan"
+                  size="xs"
+                  className='mt-2.5'
+                  onClick={openMemberModal}
+                >
+                  🔍 မန်ဘာရှာရန် (F4 နှိပ်ပါ)
+                </Button>
+              )}
+            </div>
 
             <div className="mt-12 flex justify-between text-lg text-gray-300">
               <span>စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
@@ -746,8 +745,6 @@ function App() {
               <Text size="xs" fw={700} color="red" className="tracking-wider flex items-center gap-1">
                 🚨 LOW STOCK NOTIFICATIONS (လက်ကျန်ပြတ်လုနီးပါးစာရင်း)
               </Text>
-
-              {/* Zustand Store ရှိ lowStockItems အား ပတ်၍ အနီရောင် Alert ကတ်လေးများဖြင့် စုပြခြင်း */}
               {lowStockItems.length === 0 ? (
                 <Text size="xs" color="gray" className="italic mt-1">ပစ္စည်းလက်ကျန်များအားလုံး စိုပြေအဆင်ပြေနေပါသည်</Text>
               ) : (
@@ -762,7 +759,6 @@ function App() {
                 ))
               )}
             </div>
-
           </div>
 
           <Button
@@ -779,7 +775,6 @@ function App() {
         </aside>
       )}
 
-
       <Modal
         opened={opened}
         onClose={close}
@@ -791,8 +786,6 @@ function App() {
           header: 'bg-[#1f2028] border-b border-[#2e303a] text-white print:hidden',
         }}
       >
-
-        {/* --------------------- */}
         <div className="flex flex-col gap-4 mb-6 print:hidden">
           <Select
             label="ငွေပေးချေမှုစနစ်"
@@ -827,50 +820,37 @@ function App() {
             </span>
           </div>
 
-          {/* ⚠️ အဆင့် ၂၂ အပြီးသတ် FIXED: Brackets နှင့် Styles အမှား ၄ ခုစလုံးအား ရာနှုန်းပြည့် ခြေဖျက်ပြီးသား ကုဒ်စစ်စစ် ဖြစ်ပါသည် 🎯 ⭐ */}
-          {
-            (paymentMethod === 'KPay' || paymentMethod === 'WaveMoney') && (
-              <Paper p="sm" radius="md" className="mt-4 flex flex-col items-center justify-center bg-white border border-gray-200 p-4">
-                <Text fw={700} size="xs" className="mb-3 tracking-wide text-gray-700 text-center w-full">
-                  [ LIVE DIGITAL PAYMENT QR CODE ]
-                </Text>
-
-
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`CITYMART-POS|TOTAL:${grandTotal}|METHOD:${paymentMethod}`)}`}
-                  alt="Digital Payment QR Code"
-                  style={{ width: '200px', height: '200px', objectFit: 'contain', margin: '0 auto' }}
-                  className="shadow-md my-3 block rounded-md"
-                />
-
-                <Text fw={600} size="xs" className="text-gray-500 mt-2.5 text-center w-full ">
-                  ကျသင့်ငွေ အတိအကျ - {grandTotal.toLocaleString()} MMK
-                </Text>
-              </Paper>
-            )
-          }
-
+          {(paymentMethod === 'KPay' || paymentMethod === 'WaveMoney') && (
+            <Paper p="sm" radius="md" className="mt-4 flex flex-col items-center justify-center bg-white border border-gray-200 p-4">
+              <Text fw={700} size="xs" className="mb-3 tracking-wide text-gray-700 text-center w-full">
+                [ LIVE DIGITAL PAYMENT QR CODE ]
+              </Text>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`CITYMART-POS|TOTAL:${grandTotal}\vert{}METHOD:${paymentMethod}`)}`}
+                alt="Digital Payment QR Code"
+                style={{ width: '200px', height: '200px', objectFit: 'contain', margin: '0 auto' }}
+                className="shadow-md my-3 block rounded-md"
+              />
+              <Text fw={600} size="xs" className="text-gray-500 mt-2.5 text-center w-full">
+                ကျသင့်ငွေ အတိအကျ - {grandTotal.toLocaleString()} MMK
+              </Text>
+            </Paper>
+          )}
         </div>
-        {/* --------------------- */}
-        {/* 🖨️ ပရင်တာမှ ထွက်လာမည့် တကယ့် 80mm စက္ကူလိပ်ဒီဇိုင်း (Print Layer Area) */}
+
         <div id="receipt-print-area" className="p-4 font-mono text-sm leading-relaxed text-gray-200 print:text-black print:p-0 print:w-[80mm] mx-auto bg-[#16171d] print:bg-white rounded-lg border border-[#2e303a] print:border-none">
-          {/* 🔗 FIXED: Random ဂဏန်းများအစား တကယ့် PostgreSQL Database မှ ထွက်လာသော တရားဝင် စီစဉ်နံပါတ်အား ထုတ်ပြခြင်း 🎯 ⭐ */}
           <div className="text-center mb-4">
             <Text size="xl" className="font-extrabold text-white print:text-black">CITY MART SUPERMARKET</Text>
             <div className="text-left mt-4 text-xs border-b border-dashed border-gray-600 pb-2">
               <div>နေ့ရက် - {new Date().toLocaleString('en-MM')}</div>
-
-              {/* ⚠️ ဤနေရာတွင် ရွေးချယ်ထားသော ဘောက်ချာ သို့မဟုတ် ခြင်းတောင်းမှ ထွက်လာသော invoiceNo အား ကွက်တိ ချိတ်ဆက်ခြင်း */}
               <div className="font-bold text-white print:text-black">
                 ဘောက်ချာနံပါတ် - {selectedOrder ? selectedOrder.invoiceNo : `INV-${new Date().getFullYear()}-XXXXX`}
               </div>
-
               <div>ငွေရှင်းစနစ် - {paymentMethod}</div>
               <div>ဝန်ထမ်း - cashier_01</div>
             </div>
           </div>
 
-          {/* စလစ်ထဲရှိ ပစ္စည်းစာရင်းဇယားအကျဉ်း */}
           <div className="flex flex-col gap-2 text-xs border-b border-dashed border-gray-600 pb-2 mb-2">
             <div className="flex justify-between font-bold text-white print:text-black">
               <span className="w-1/2">ပစ္စည်းအမည်</span>
@@ -886,7 +866,6 @@ function App() {
             ))}
           </div>
 
-          {/* စုစုပေါင်းငွေ တွက်ချက်မှုပြကွက် */}
           <div className="flex flex-col gap-1 text-xs font-bold pt-2">
             <div className="flex justify-between text-white print:text-black">
               <span>စုစုပေါင်း ကျသင့်ငွေ (TOTAL):</span>
@@ -898,15 +877,12 @@ function App() {
           </div>
         </div>
 
-        {/* Modal အောက်ခြေ ပရင့်ထုတ်မည့် ခလုတ် (ပရင့်ထုတ်ချိန်တွင် ၎င်းခလုတ်များ အလိုအလျောက် ပျောက်နေရပါမည်) */}
         <Group className="mt-6 print:hidden" justify="flex-end">
           <Button variant="subtle" color="gray" onClick={close} disabled={loading}>ပယ်ဖျက်မည်</Button>
           <Button
             color="orange"
             leftSection={<IconPrinter size={18} />}
             onClick={() => {
-              // Browser ၏ Native PDF Save Layout ကို နှိုးဆော်ခြင်း
-              // 🖨️ စက်တွင်း thermal printer အပြင် 'Save as PDF' ကိုပါ စံနှုန်းမီ ရွေးချယ်ခွင့်ပြုပါသည်
               window.print();
               notifications.show({
                 title: 'ဒစ်ဂျစ်တယ် PDF စလစ် 🟢',
@@ -930,7 +906,6 @@ function App() {
         </Group>
       </Modal>
 
-      {/* show the details of items list */}
       <Modal
         opened={detailOpened}
         onClose={closeDetail}
@@ -944,7 +919,6 @@ function App() {
       >
         {selectedOrder && (
           <div className="flex flex-col gap-4 font-mono text-sm">
-            {/* ဘောက်ချာ၏ ပင်မ Metadata အချက်အလက်များ */}
             <div className="grid grid-cols-2 gap-3 bg-[#16171d] p-4 rounded-md border border-[#2e303a]">
               <div><Text size="xs" color="gray">INVOICE NO :</Text><Text fw="bold" color="cyan">INV-{selectedOrder.id.slice(0, 8).toUpperCase()}</Text></div>
               <div><Text size="xs" color="gray">DATE / TIME :</Text><Text fw="bold">{new Date(selectedOrder.createdAt).toLocaleString('en-MM')}</Text></div>
@@ -952,7 +926,6 @@ function App() {
               <div><Text size="xs" color="gray">CASHIER ID :</Text><Text fw="bold" size="xs" className="truncate">{selectedOrder.cashierId}</Text></div>
             </div>
 
-            {/* ဝယ်ယူသွားခဲ့သော ပစ္စည်းစာရင်းဇယားကွက် သီးသန့်ပြကွက် */}
             <Text fw={700} size="sm" color="gray" className="mt-2">PURCHASED ITEMS (ဝယ်ယူခဲ့သော ပစ္စည်းများ)</Text>
             <Table verticalSpacing="xs" className="w-full bg-[#16171d] rounded-md overflow-hidden">
               <Table.Thead className="bg-[#2e303a]">
@@ -975,7 +948,6 @@ function App() {
               </Table.Tbody>
             </Table>
 
-            {/* စုစုပေါင်းငွေရှင်းတမ်း ဖြတ်ပိုင်းအကျဉ်း */}
             <Divider color="#2e303a" className="my-2" />
             <div className="flex flex-col gap-2 bg-[#16171d] p-4 rounded-md border border-[#2e303a]">
               <div className="flex justify-between text-xs text-gray-400"><span>ဝယ်သူပေးငွေ (CASH RECEIVED):</span><span>{selectedOrder.cashReceived.toLocaleString()} MMK</span></div>
@@ -991,7 +963,52 @@ function App() {
         )}
       </Modal>
 
-
+      {/* 🔍 မန်ဘာရှာဖွေရန် သီးသန့် Pop-up Modal */}
+      <Modal
+        opened={memberModalOpened}
+        onClose={closeMemberModal}
+        title={<Text fw={700} size="md">ဖောက်သည်မန်ဘာ ရှာဖွေရန်</Text>}
+        centered
+        trapFocus={true}
+        size="sm"
+        classNames={{
+          content: 'bg-[#1f2028] border border-[#2e303a] text-white',
+          header: 'bg-[#1f2028] border-b border-[#2e303a] text-white',
+        }}
+      >
+        <div className="flex flex-col gap-4 py-2">
+          <TextInput
+            data-autofocus
+            placeholder="ဖုန်းနံပါတ် ရိုက်ထည့်ပါ..."
+            size="md"
+            value={searchPhone}
+            onChange={(e) => setSearchPhone(e.target.value)}
+            onKeyDown={async (e) => {
+              if (e.key === 'Enter') {
+                await searchCustomerByPhone(searchPhone);
+                setSearchPhone('');
+                closeMemberModal();
+              }
+            }}
+            styles={{
+              input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }
+            }}
+          />
+          <Group justify="flex-end">
+            <Button variant="subtle" color="gray" onClick={closeMemberModal}>ပယ်ဖျက်မည်</Button>
+            <Button
+              color="teal"
+              onClick={async () => {
+                await searchCustomerByPhone(searchPhone);
+                setSearchPhone('');
+                closeMemberModal();
+              }}
+            >
+              ရှာဖွေမည်
+            </Button>
+          </Group>
+        </div>
+      </Modal>
     </div>
   );
 }

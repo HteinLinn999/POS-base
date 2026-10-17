@@ -34,6 +34,7 @@ export class OrderService {
           changeGiven: dto.changeGiven,
           paymentMethod: dto.paymentMethod,
           cashierId: dto.cashierId,
+          branchId: dto.branchId,
         },
       });
 
@@ -112,4 +113,73 @@ export class OrderService {
       })),
     }));
   }
+
+ async create(createOrderDto: CreateOrderDto) {
+  const { totalAmount, cashReceived, changeGiven, paymentMethod, cashierId, customerId, items } = createOrderDto;
+
+  // 🛡️ [Ultimate Fix] Database ထဲတွင် Branch လုံးဝ မရှိသေးပါက အလိုအလျောက် အဓိက Branch တစ်ခု စတင်ဖန်တီးပေးခြင်း (Auto-Seed)
+  let branch = await this.prisma.branch.findFirst();
+
+  if (!branch) {
+    branch = await this.prisma.branch.create({
+      data: {
+        code: 'HQ-001',
+        name: 'Main Branch (HQ)',
+        address: 'Yangon, Myanmar',
+      },
+    });
+  }
+
+  const branchId = branch.id; // 👈 ယခုဆိုလျှင် Database ထဲတွင် အသေအချာ ရှိနေပြီးသား ID အမှန် ဖြစ်ပါသည်
+  const earnedPoints = Math.floor(totalAmount / 1000);
+
+  return await this.prisma.$transaction(async (tx) => {
+    const currentYear = new Date().getFullYear();
+    const lastOrder = await tx.order.findFirst({
+      where: { branchId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const nextId = lastOrder ? parseInt(lastOrder.invoiceNo.split('-').pop() || '0') + 1 : 1;
+    const formattedInvoiceNo = `INV-${currentYear}-${String(nextId).padStart(5, '0')}`;
+
+    // ၁။ ပင်မ အရောင်းဘောက်ချာ (Order) အား ဒေတာဘေ့စ်ထဲ သိမ်းဆည်းခြင်း
+    const order = await tx.order.create({
+      data: {
+        invoiceNo: formattedInvoiceNo,
+        totalAmount,
+        cashReceived,
+        changeGiven,
+        paymentMethod,
+        cashierId,
+        branchId, // 👈 100% မှန်ကန်သော Branch ID
+        customerId: customerId || null,
+        orderItems: {
+          create: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })),
+        },
+      },
+      include: {
+        orderItems: true,
+        customer: true,
+      },
+    });
+
+    // ၂။ Customer ပါလာပါက Points ပေါင်းထည့်ပေးခြင်း
+    if (customerId) {
+      await tx.customer.update({
+        where: { id: customerId },
+        data: {
+          points: { increment: earnedPoints },
+          totalSpent: { increment: totalAmount },
+        },
+      });
+    }
+
+    return order;
+  });
+}
 }

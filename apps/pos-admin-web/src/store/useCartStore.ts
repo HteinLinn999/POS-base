@@ -55,6 +55,14 @@ export interface ILowStockProduct {
   stockQuantity: number;
 }
 
+export interface ICustomer {
+  id: string;
+  name: string;
+  phone: string;
+  tier: string;
+  points: number;
+}
+
 // ၄။ Zustand Store State နှင့် Actions များ သတ်မှတ်ခြင်း
 interface ICartState {
   cartItems: ICartItem[];
@@ -86,8 +94,14 @@ interface ICartState {
   isOnline: boolean;
   syncOfflineOrders: () => Promise<void>;
 
+  branches: { id: string; name: string; code: string; address?: string }[];
   currentBranchId: string;
   setCurrentBranchId: (branchId: string) => void;
+  fetchBranches: () => Promise<void>;
+
+  selectedCustomer: ICustomer | null;
+  setSelectedCustomer: (customer: ICustomer | null) => void;
+  searchCustomerByPhone: (phone: string) => Promise<void>;
 }
 
 interface IProductFromApi {
@@ -109,6 +123,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
   activeView: "counter",
   categories: [],
   lowStockItems: [],
+  branches: [],
 
   // 🌐 Network status နှင့် LocalStorage မှ offline queue ကို စတင်ဖတ်ရှုခြင်း
   isOnline: typeof window !== "undefined" ? navigator.onLine : true,
@@ -174,6 +189,7 @@ export const useCartStore = create<ICartState>((set, get) => ({
 
   // 💳 ငွေရှင်းခြင်း လုပ်ငန်းစဉ် (Offline-First နှင့် Idempotency Key ပါဝင်သည်)
   submitCheckout: async (cashReceived: number, paymentMethod: string) => {
+    const state = get();
     const currentCart = get().cartItems;
     if (currentCart.length === 0)
       throw new Error("ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိပါ");
@@ -190,8 +206,9 @@ export const useCartStore = create<ICartState>((set, get) => ({
       cashReceived,
       changeGiven,
       paymentMethod,
-      branchId: get().currentBranchId, 
+      branchId: get().currentBranchId,
       cashierId: "9f074d0e-953e-4b40-9a3d-425886616238",
+      customerId: state.selectedCustomer?.id || undefined,
       items: currentCart.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
@@ -211,7 +228,10 @@ export const useCartStore = create<ICartState>((set, get) => ({
       set({ offlineQueue });
 
       // 🧹 အော်ဒါသိမ်းပြီးသည်နှင့် ခြင်းတောင်းအား အလိုအလျောက် ရှင်းလင်းခြင်း
-      get().clearCart();
+      //get().clearCart();
+
+      // 🧹 [ပြင်ဆင်ချက်] ခြင်းတောင်းနှင့် Selected Customer အား ရှင်းလင်းခြင်း
+      set({ offlineQueue, cartItems: [], selectedCustomer: null });
 
       notifications.show({
         title: "အင်တာနက်လိုင်း မရှိပါ (Offline Mode)",
@@ -225,7 +245,11 @@ export const useCartStore = create<ICartState>((set, get) => ({
     try {
       await api.post("/orders/checkout", orderPayload);
       // 🧹 Online ဖြင့် အောင်မြင်ပါက ခြင်းတောင်း ရှင်းလင်းခြင်း
-      get().clearCart();
+      //get().clearCart();
+
+      // 🧹 [ပြင်ဆင်ချက်] Online ဖြင့် အောင်မြင်ပါက ခြင်းတောင်းနှင့် Selected Customer အား ရှင်းလင်းခြင်း၊ အရောင်းမှတ်တမ်း အသစ်ဆွဲယူခြင်း
+      set({ cartItems: [], selectedCustomer: null });
+      await state.fetchSalesOrders();
     } catch (error: any) {
       const msg =
         error.response?.data?.message ||
@@ -316,9 +340,54 @@ export const useCartStore = create<ICartState>((set, get) => ({
     }));
   },
 
+  selectedCustomer: null,
+  setSelectedCustomer: (customer: ICustomer | null) =>
+    set({ selectedCustomer: customer }),
+
+  // ဖုန်းနံပါတ်ဖြင့် ဖောက်သည်ရှာဖွေသည့် Function
+  searchCustomerByPhone: async (phone: string) => {
+    try {
+      const { data } = await api.get<ICustomer>(
+        `/customers/phone/${encodeURIComponent(phone)}`,
+      );
+      set({ selectedCustomer: data });
+      notifications.show({
+        title: "မန်ဘာတွေ့ရှိပါပြီ 🟢",
+        message: `${data.name} (${data.tier}) အား ရွေးချယ်ပြီးပါပြီ`,
+        color: "teal",
+      });
+    } catch (error) {
+      notifications.show({
+        title: "မတွေ့ရှိပါ ❌",
+        message: "ဤဖုန်းနံပါတ်ဖြင့် မှတ်ပုံတင်ထားသော မန်ဘာမရှိပါ",
+        color: "orange",
+      });
+      set({ selectedCustomer: null });
+    }
+  },
+
   currentBranchId: "default-branch-uuid", // ပုံသေ သို့မဟုတ် ရွေးချယ်ထားသော ဆိုင်ခွဲ ID
   setCurrentBranchId: (branchId: string) => set({ currentBranchId: branchId }),
 
+  // 🏢 Branch များ ဆွဲယူရန် function
+  fetchBranches: async () => {
+    try {
+      const { data } = await api.get("/branches");
+      if (data && data.length > 0) {
+        set({
+          branches: data, // 👈 ဆိုင်ခွဲစာရင်းများကို state ထဲသို့ သိမ်းဆည်းခြင်း
+          // လက်ရှိ currentBranchId မရှိသေးပါက (သို့မဟုတ် default ဖြစ်နေပါက) ပထမဆုံး Branch ရဲ့ UUID ကိုယူမည်
+          currentBranchId:
+            get().currentBranchId &&
+            get().currentBranchId !== "default-branch-uuid"
+              ? get().currentBranchId
+              : data[0].id,
+        });
+      }
+    } catch (error) {
+      console.error("Branch ဆွဲယူရာတွင် အမှားရှိပါသည်", error);
+    }
+  },
 }));
 
 // 🌐 Window Online/Offline Events များအား အလိုအလျောက် နားထောင်စောင့်ကြည့်ခြင်း

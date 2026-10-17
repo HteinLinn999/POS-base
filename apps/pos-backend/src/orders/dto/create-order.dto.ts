@@ -23,16 +23,27 @@ export class CreateOrderDto {
   changeGiven: number;
 
   @IsString()
-  @IsNotEmpty({ message: 'ငွေပေးချေမှုစနစ် (ဥပမာ - Cash, KPay) မဖြစ်မနေ ပါဝင်ရပါမည်' })
+  @IsNotEmpty({
+    message: 'ငွေပေးချေမှုစနစ် (ဥပမာ - Cash, KPay) မဖြစ်မနေ ပါဝင်ရပါမည်',
+  })
   paymentMethod: string;
 
   @IsString()
   @IsNotEmpty({ message: 'ဝန်ထမ်း Cashier ID မဖြစ်မနေ ပါဝင်ရပါမည်' })
   cashierId: string;
 
+  // 🔗 အသစ်တိုးရန်: ဆိုင်ခွဲ ID လက်ခံရန်
+  @IsString()
+  @IsNotEmpty()
+  branchId: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
-  @IsNotEmpty({ message: 'ခြင်းတောင်းထဲတွင် အနည်းဆုံး ပစ္စည်း ၁ မျိုး ပါဝင်ရပါမည်' })
+  @IsNotEmpty({
+    message: 'ခြင်းတောင်းထဲတွင် အနည်းဆုံး ပစ္စည်း ၁ မျိုး ပါဝင်ရပါမည်',
+  })
   items: CreateOrderItemDto[];
+
+  customerId?: string; 
 }
