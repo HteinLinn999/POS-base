@@ -24,7 +24,7 @@ export class BranchesService {
     });
   }
 
-  async create(branchDto:CreateBranchDto){
-    console.log('branch service')
+  async create(branchDto: CreateBranchDto) {
+    console.log('branch service');
   }
 }
