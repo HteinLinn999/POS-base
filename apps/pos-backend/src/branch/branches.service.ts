@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateBranchDto } from './dto/create-branch.dto.js';
 
 @Injectable()
 export class BranchesService {
@@ -21,5 +22,9 @@ export class BranchesService {
     return await this.prisma.branch.findMany({
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  async create(branchDto:CreateBranchDto){
+    console.log('branch service')
   }
 }
