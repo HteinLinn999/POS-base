@@ -374,7 +374,9 @@ function App() {
 
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
-              <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်"><IconPalette size={24} /></ActionIcon>
+              <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်">
+                  <IconPalette size={24} />
+              </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown className="border-[#2e303a] bg-[#1f2028]">
               <Menu.Label className="font-bold text-gray-400">POS Themes ရွေးချယ်ပါ</Menu.Label>
