@@ -15,6 +15,9 @@
 **/repomix-output.*
 repomix-output.xml
 repomix-output.*
+repomix-output-*.xml
+repomix-output-*.*
+
 App-only.md
       modified:   apps/pos-adm
 

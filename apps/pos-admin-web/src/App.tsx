@@ -179,24 +179,6 @@ function App() {
     }
   }, [opened, cartItems]);
 
-
-  //  const [branches, setBranches] = useState<any[]>([]);
-
-  // Component Mount ဖြစ်ချိန်တွင် Backend မှ Branch များကို လှမ်းဆွဲရန်
-  // useEffect(() => {
-  //   api.get('/branches')
-  //     .then((res) => {
-  //       if (res.data && res.data.length > 0) {
-  //         setBranches(res.data);
-  //         // ပထမဆုံး Branch ကို Default အနေဖြင့် သတ်မှတ်ပေးခြင်း (မရှိသေးပါက)
-  //         if (!currentBranchId) {
-  //           setCurrentBranchId(res.data[0].id);
-  //         }
-  //       }
-  //     })
-  //     .catch((err) => console.error("Branch ဆွဲယူရာတွင် အမှားရှိပါသည်", err));
-  // }, [currentBranchId, setCurrentBranchId]);
-
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcode.trim()) return;
@@ -342,10 +324,10 @@ function App() {
           </ActionIcon>
 
           {activeView === 'counter' && (
-            <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1">
+            <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-2">
               <TextInput
                 ref={inputRef}
-                leftSection={<IconBarcode size={24} className="text-gray-400" />}
+                leftSection={<IconBarcode size={26} className="text-cyan-400 animate-pulse" />}
                 placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850001234567)..."
                 size="lg"
                 radius="md"
@@ -356,12 +338,20 @@ function App() {
                     backgroundColor: activeTheme.inputBg,
                     color: '#ffffff',
                     fontSize: '16px',
+                    border: '2px solid #00d8ff', // ထင်ရှားစေရန် Border အရောင်ထည့်ခြင်း
+
                   },
                 }}
               />
             </form>
           )}
-          {activeView !== 'counter' && <div className="flex-1"><Text size="xl" className="text-white font-bold capitalize">{activeView} Dashboard</Text></div>}
+          {activeView !== 'counter' && 
+          <div className="flex-1">
+            <Text size="xl" className="text-white font-bold capitalize">
+                {activeView} Dashboard
+            </Text>
+          </div>
+          }
 
           <Select
             placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
@@ -378,7 +368,7 @@ function App() {
               }
             }}
             styles={{
-              input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '280px' }
+              input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '220px' }
             }}
           />
 
