@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 
 @Injectable()
-export class OrderService {
+export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async checkoutOrder(dto: CreateOrderDto) {
