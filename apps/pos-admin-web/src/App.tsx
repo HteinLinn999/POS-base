@@ -31,12 +31,15 @@ import {
   IconSettings,
   IconMinus,
   IconPlus,
-  IconTrash
+  IconTrash,
+  IconBuildingStore
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
 import { useCartStore, type ActiveView } from './store/useCartStore';
 
 import { api } from './api/axios';
+import { BranchStockView } from './components/BranchStockView';
+import { BranchSettingsView } from './views/BranchSettingsView';
 
 interface IThemeConfig {
   id: string;
@@ -263,48 +266,67 @@ function App() {
   };
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
+    <div className={`flex h-screen w-screen overflow-hidden 
+      ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
       <nav
-        className={`${activeTheme.panel} flex h-full shrink-0 flex-col justify-between overflow-hidden border-r ${activeTheme.border} transition-all duration-300 ease-in-out print:hidden ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'}`}
+        className={`${activeTheme.panel} flex flex-col h-full shrink-0 
+             justify-between overflow-hidden border-r 
+        ${activeTheme.border} 
+        transition-all duration-300 ease-in-out print:hidden 
+        ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'}`}
         aria-hidden={!isLeftNavOpen}
       >
         <div className="flex flex-col w-full gap-6">
-          <div className="flex h-10 w-full items-center justify-start gap-3 overflow-hidden px-2">
+          <div className="flex h-10 w-full items-center 
+          justify-start gap-3 overflow-hidden px-2">
             <IconReceipt size={32} className={activeTheme.primaryText} />
             <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
           </div>
 
-          <div className="mt-4 flex w-full flex-col gap-2">
-            {[
-              { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
-              { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
-              { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
-              { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
-              { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
-              { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
-            ].map((menu) => (
-              <Button
-                key={menu.id}
-                variant={activeView === menu.id ? 'filled' : 'subtle'}
-                color={activeView === menu.id ? activeTheme.badgeColor : 'gray'}
-                className="h-11 justify-start"
-                size="md"
-                leftSection={menu.icon}
-                onClick={() => setActiveView(menu.id as ActiveView)}
-              >
-                <span className="text-base font-medium">{menu.label}</span>
-              </Button>
-            ))}
+          <div className="flex flex-col w-full  gap-2 ">
+            <div className=' overflow-x-auto '>
+              <div className=' overflow-y-auto max-h-96 '>
+                {[
+                  { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
+                  { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
+
+                  {
+                    id: 'branch-stocks', label: 'ဆိုင်ခွဲအလိုက် လက်ကျန်',
+                    icon: <IconBuildingStore size={20} />
+                  },
+
+                  { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
+
+                  { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
+                  { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
+                  { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
+                  { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
+                ].map((menu) => (
+                  <Button
+                    key={menu.id}
+                    variant={activeView === menu.id ? 'filled' : 'subtle'}
+                    color={activeView === menu.id ? activeTheme.badgeColor : 'gray'}
+                    className="h-11 justify-start"
+                    size="md"
+                    leftSection={menu.icon}
+                    onClick={() => setActiveView(menu.id as ActiveView)}
+                  >
+                    <span className="text-base font-medium">{menu.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] overflow-hidden cursor-pointer hover:bg-[#1f2028]" onClick={() => {
-          setCurrentUser(prev => ({
-            name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
-            shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
-          }));
-          notifications.show({ title: 'Shift ဂျာစာရင်းပြောင်းလဲခြင်း', message: 'ဝန်ထမ်းအကောင့်နှင့် တာဝန်ကျချိန်အား ပြောင်းလဲလိုက်ပါသည်', color: 'blue' });
-        }}>
+        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] 
+          overflow-hidden cursor-pointer hover:bg-[#1f2028]" onClick={() => {
+            setCurrentUser(prev => ({
+              name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
+              shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
+            }));
+            notifications.show({ title: 'Shift ဂျာစာရင်းပြောင်းလဲခြင်း', message: 'ဝန်ထမ်းအကောင့်နှင့် တာဝန်ကျချိန်အား ပြောင်းလဲလိုက်ပါသည်', color: 'blue' });
+          }}>
           <Group gap="xs">
             <ActionIcon variant="light" color={activeTheme.badgeColor} size="md" radius="xl">
               <IconUser size={18} />
@@ -323,34 +345,35 @@ function App() {
             <IconMenu2 size={24} />
           </ActionIcon>
 
-          {activeView === 'counter' && (
-            <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-2">
-              <TextInput
-                ref={inputRef}
-                leftSection={<IconBarcode size={26} className="text-cyan-400 animate-pulse" />}
-                placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850001234567)..."
-                size="lg"
-                radius="md"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                styles={{
-                  input: {
-                    backgroundColor: activeTheme.inputBg,
-                    color: '#ffffff',
-                    fontSize: '16px',
-                    border: '2px solid #00d8ff', // ထင်ရှားစေရန် Border အရောင်ထည့်ခြင်း
+          {
+            activeView === 'counter' && (
+              <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-2">
+                <TextInput
+                  ref={inputRef}
+                  leftSection={<IconBarcode size={26} className="text-cyan-400 animate-pulse" />}
+                  placeholder="စမ်းသပ်ရန် Barcode စကန်ဖတ်ပါ (8850001234567)..."
+                  size="lg"
+                  radius="md"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  styles={{
+                    input: {
+                      backgroundColor: activeTheme.inputBg,
+                      color: '#ffffff',
+                      fontSize: '16px',
+                      border: '2px solid #00d8ff', // ထင်ရှားစေရန် Border အရောင်ထည့်ခြင်း
 
-                  },
-                }}
-              />
-            </form>
-          )}
-          {activeView !== 'counter' && 
-          <div className="flex-1">
-            <Text size="xl" className="text-white font-bold capitalize">
+                    },
+                  }}
+                />
+              </form>
+            )}
+          {activeView !== 'counter' &&
+            <div className="flex-1">
+              <Text size="xl" className="text-white font-bold capitalize">
                 {activeView} Dashboard
-            </Text>
-          </div>
+              </Text>
+            </div>
           }
 
           <Select
@@ -358,6 +381,7 @@ function App() {
             data={branchDropdownData}
             value={currentBranchId}
             onChange={(val) => {
+              console.log('currentBranchId :',val)
               if (val) {
                 setCurrentBranchId(val);
                 notifications.show({
@@ -375,7 +399,7 @@ function App() {
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
               <ActionIcon variant="light" color="cyan" size="xl" radius="md" title="Theme ပြောင်းရန်">
-                  <IconPalette size={24} />
+                <IconPalette size={24} />
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown className="border-[#2e303a] bg-[#1f2028]">
@@ -450,6 +474,10 @@ function App() {
               </Table.Tbody>
             </Table>
           </Paper>
+        ) : activeView === 'branch-stocks' ? (
+          <BranchStockView currentBranchId={currentBranchId} />
+        ) : activeView === 'branch-settings' ? (
+          <BranchSettingsView />
         ) : activeView === 'history' ? (
           <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
             <div className="grid grid-cols-3 gap-4 shrink-0">
@@ -689,19 +717,25 @@ function App() {
       </main>
 
       {activeView === 'counter' && (
-        <aside className={`${activeTheme.panel} flex h-full w-[380px] shrink-0 flex-col justify-between border-l ${activeTheme.border} p-6 print:hidden`}>
-          <div className={`border-b ${activeTheme.border} pb-6`}>
-            <div className="mb-2 flex items-center gap-3">
-              <IconReceipt size={32} className={activeTheme.primaryText} />
-              <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
+        <aside className={`${activeTheme.panel} flex flex-col h-full w-[380px] min-w-[350px] 
+        shrink-0  justify-between border-l ${activeTheme.border} p-6 print:hidden overflow-hidden`}>
+          {/* Upper Section */}
+          <div className={`flex-1 overflow-y-auto pr-1 flex flex-col gap-4 border-b ${activeTheme.border} pb-4`}>
+            <div>
+              {/* Title Header */}
+              <div className=" flex items-center gap-3">
+                <IconReceipt size={32} className={activeTheme.primaryText} />
+                <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
+              </div>
+              <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
             </div>
-            <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
 
+            {/* Customer Loyalty Section */}
             <div className={`mt-4 p-3 rounded-lg border ${activeTheme.bg} ${activeTheme.border} mb-4`}>
-              <Text size="xs" fw={700} color="gray" className="mb-2">CUSTOMER LOYALTY (မန်ဘာဖောက်သည်)</Text>
+              <Text size="xs" fw={700} c="dimmed" className="mb-1.5 uppercase tracking-wider">CUSTOMER LOYALTY (မန်ဘာဖောက်သည်)</Text>
               {selectedCustomer ? (
                 <div className="flex justify-between items-center bg-[#1f2028] p-2 rounded border border-cyan-800">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col truncate pr-2">
                     <Text size="xs" fw="bold" className="text-white">{selectedCustomer.name}</Text>
                     <Text size="10px" className="text-cyan-400 font-mono">{selectedCustomer.phone} | {selectedCustomer.tier}</Text>
                   </div>
@@ -713,7 +747,7 @@ function App() {
                   variant="light"
                   color="cyan"
                   size="xs"
-                  className='mt-2.5'
+                  className='mt-1'
                   onClick={openMemberModal}
                 >
                   🔍 မန်ဘာရှာရန် (F4 နှိပ်ပါ)
@@ -721,49 +755,59 @@ function App() {
               )}
             </div>
 
-            <div className="mt-12 flex justify-between text-lg text-gray-300">
-              <span>စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
-              <span className="font-bold text-white">{cartItems.length} မျိုး</span>
+            {/* Total Items Info */}
+            <div className="flex justify-between  items-center  text-base text-gray-300 px-1">
+              <span className="text-sm">စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
+              <span className="font-bold text-white text-lg">{cartItems.length} မျိုး</span>
             </div>
 
-            <div className={`mt-8 flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4`}>
-              <span className="text-sm font-semibold tracking-wider text-gray-400">TOTAL AMOUNT</span>
-              <span className="mt-2 font-mono text-4xl font-extrabold text-[#10b981]">
+            <div className={`flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4 text-center shadow-inner`}>
+              <span className="text-sm font-semibold tracking-widest text-gray-400">TOTAL AMOUNT</span>
+              <span className="mt-1 font-mono text-3xl font-extrabold  text-[#10b981]">
                 {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
               </span>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2 max-h-[220px] overflow-y-auto">
+            {/* Low Stock Notifications Section */}
+            <div className="flex flex-col gap-2">
               <Text size="xs" fw={700} color="red" className="tracking-wider flex items-center gap-1">
                 🚨 LOW STOCK NOTIFICATIONS (လက်ကျန်ပြတ်လုနီးပါးစာရင်း)
               </Text>
-              {lowStockItems.length === 0 ? (
-                <Text size="xs" color="gray" className="italic mt-1">ပစ္စည်းလက်ကျန်များအားလုံး စိုပြေအဆင်ပြေနေပါသည်</Text>
-              ) : (
-                lowStockItems.map((prod) => (
-                  <div key={prod.id} className="flex justify-between items-center bg-[#ef444415] border border-[#ef444430] p-2.5 rounded-md">
-                    <div className="flex flex-col truncate max-w-[180px]">
-                      <Text size="xs" fw="bold" className="text-white truncate">{prod.name}</Text>
-                      <Text size="10px" className="text-gray-500 font-mono">{prod.barcode}</Text>
+              <div className="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+
+                {lowStockItems.length === 0 ? (
+                  <Text size="xs" color="gray" className="italicpy-2 text-center">
+                    ပစ္စည်းလက်ကျန်များအားလုံး စိုပြေအဆင်ပြေနေပါသည်
+                  </Text>
+                ) : (
+                  lowStockItems.map((prod) => (
+                    <div key={prod.id} className="flex justify-between items-center bg-[#ef444415] border border-[#ef444430] p-2.5 rounded-md">
+                      <div className="flex flex-col truncate pr-2 ">
+                        <Text size="xs" fw="bold" className="text-white truncate">{prod.name}</Text>
+                        <Text size="10px" className="text-gray-500 font-mono">{prod.barcode}</Text>
+                      </div>
+                      <Badge color="red" variant="filled" size="sm" className="font-bold">Qty: {prod.stockQuantity}</Badge>
                     </div>
-                    <Badge color="red" variant="filled" size="sm" className="font-bold">Qty: {prod.stockQuantity}</Badge>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
-          <Button
-            color={activeTheme.badgeColor}
-            size="xl"
-            radius="md"
-            className="h-auto w-full py-4 text-xl font-bold shadow-lg"
-            leftSection={<IconReceipt size={24} />}
-            onClick={open}
-            disabled={cartItems.length === 0}
-          >
-            ငွေရှင်းမည် (F2)
-          </Button>
+          {/* Bottom Checkout Button */}
+          <div className="pt-4">
+            <Button
+              color={activeTheme.badgeColor}
+              size="xl"
+              radius="md"
+              className="h-auto w-full py-4 text-xl font-bold shadow-lg"
+              leftSection={<IconReceipt size={22} />}
+              onClick={open}
+              disabled={cartItems.length === 0}
+            >
+              ငွေရှင်းမည် (F2)
+            </Button>
+          </div>
         </aside>
       )}
 

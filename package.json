@@ -14,7 +14,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  
   "packageManager": "pnpm@12.4.1",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "prisma": "^7.10.1"
+  }
 }

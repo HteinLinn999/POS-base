@@ -1,9 +1,11 @@
 datasource db {
   provider = "postgresql"  
+
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 // ၁။ ဝန်ထမ်းများ (RBAC စနစ်)
@@ -114,6 +116,7 @@ model Branch {
   name      String   @unique // ဥပမာ - "City Mart - Junction Square"
   code      String   @unique // ဥပမာ - "BR-YGN-01"
   address   String?
+  phone     String? 
   
   // ဆိုင်ခွဲတစ်ခုချင်းစီနှင့် ချိတ်ဆက်မှုများ
   products  ProductBranchStock[] 

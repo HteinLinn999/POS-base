@@ -12,4 +12,8 @@ export class CreateBranchDto {
   @IsString()
   @IsOptional()
   address?: string; // ဥပမာ - "Yangon, Myanmar"
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
 }

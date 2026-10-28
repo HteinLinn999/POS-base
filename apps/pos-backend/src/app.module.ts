@@ -9,10 +9,19 @@ import { OrdersController } from './orders/orders.controller.js';
 import { BranchesModule } from './branch/branches.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { ProductsModule } from './products/products.module.js';
+import { ProductBranchStockModule } from './product-branch-stock/product-branch-stock.module.js';
 
 @Module({
-  imports: [BranchesModule, OrdersModule, ProductsModule],
+  imports: [
+    BranchesModule,
+    OrdersModule,
+    ProductsModule,
+    ProductBranchStockModule,
+  ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [
+      AppService, 
+      PrismaService
+    ],
 })
 export class AppModule {}

@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Param,
+  BadRequestException,
+} from '@nestjs/common';
 import { ProductBranchStockService } from './product-branch-stock.service.js';
 
 @Controller('branch-stocks')
@@ -6,7 +13,12 @@ export class ProductBranchStockController {
   constructor(private readonly stockService: ProductBranchStockService) {}
 
   @Get(':branchId')
-  async getStocksByBranch(branchId: string) {
+  async getStocksByBranch(@Param('branchId') branchId: string) {
+    console.log('branchId : ', branchId);
+    if (!branchId || branchId === 'undefined' || branchId === 'null') {
+      throw new BadRequestException('ဆိုင်ခွဲ ID (branchId) လိုအပ်ပါသည်။');
+    }
+
     return this.stockService.getStockByBranch(branchId);
   }
 
@@ -19,5 +31,18 @@ export class ProductBranchStockController {
       body.productId,
       body.quantity,
     );
+  }
+
+  @Post('transfer')
+  async transferStock(
+    @Body()
+    body: {
+      fromBranchId: string;
+      toBranchId: string;
+      productId: string;
+      quantity: number;
+    },
+  ) {
+    return await this.stockService.transferStock(body);
   }
 }

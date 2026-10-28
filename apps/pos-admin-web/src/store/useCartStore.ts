@@ -41,7 +41,10 @@ export type ActiveView =
   | "history"
   | "staff"
   | "crm"
+  | "branch-stocks"
+  | "branch-settings"
   | "settings";
+    
 
 export interface ICategoryFromApi {
   id: string;
