@@ -111,6 +111,7 @@ function App() {
   useEffect(() => {
     fetchBranches();
   }, [fetchBranches]);
+  // }, []);
 
   // 3. Select အတွက် data ကို သီးသန့် variable ဖြင့် ပြင်ဆင်ခြင်း (Infinite Loop မတက်စေရန်)
   const branchDropdownData = branches.map((b: any) => ({
@@ -138,10 +139,6 @@ function App() {
     }
   }, [activeView, fetchSalesOrders, opened, memberModalOpened]);
 
-
-  useEffect(() => {
-    fetchBranches();
-  }, [fetchBranches]);
 
   useEffect(() => {
     if (activeView === 'inventory') {
@@ -381,7 +378,7 @@ function App() {
             data={branchDropdownData}
             value={currentBranchId}
             onChange={(val) => {
-              console.log('currentBranchId :',val)
+              console.log('currentBranchId :', val)
               if (val) {
                 setCurrentBranchId(val);
                 notifications.show({

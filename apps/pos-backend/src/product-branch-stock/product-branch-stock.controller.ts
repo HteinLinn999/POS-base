@@ -14,6 +14,7 @@ export class ProductBranchStockController {
 
   @Get(':branchId')
   async getStocksByBranch(@Param('branchId') branchId: string) {
+    
     console.log('branchId : ', branchId);
     if (!branchId || branchId === 'undefined' || branchId === 'null') {
       throw new BadRequestException('ဆိုင်ခွဲ ID (branchId) လိုအပ်ပါသည်။');

@@ -14,7 +14,7 @@ interface BranchStockViewProps {
 
 export const BranchStockView = ({ currentBranchId }: BranchStockViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Stock Edit States
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [newQuantity, setNewQuantity] = useState<number>(0);
@@ -35,6 +35,7 @@ export const BranchStockView = ({ currentBranchId }: BranchStockViewProps) => {
     enabled: !!currentBranchId && currentBranchId !== 'undefined',
   });
 
+  console.log('stocks:', { stocks })
   // ၂။ ဆိုင်ခွဲများစာရင်းကို ဆွဲထုတ်ရန် (Transfer လုပ်ရန် အခြား Branch များကို ရွေးချယ်နိုင်ရန်)
   const { data: branches } = useQuery({
     queryKey: ['branches'],
@@ -142,8 +143,8 @@ export const BranchStockView = ({ currentBranchId }: BranchStockViewProps) => {
   // Target Branch များကို ရွေးချယ်ရန် Format လုပ်ခြင်း (မိမိ လက်ရှိ Branch ကို ဖယ်ထုတ်မည်)
   const branchOptions = branches
     ? branches
-        .filter((b: any) => b.id !== currentBranchId)
-        .map((b: any) => ({ value: b.id, label: `${b.name} (${b.code})` }))
+      .filter((b: any) => b.id !== currentBranchId)
+      .map((b: any) => ({ value: b.id, label: `${b.name} (${b.code})` }))
     : [];
 
   return (
@@ -194,9 +195,8 @@ export const BranchStockView = ({ currentBranchId }: BranchStockViewProps) => {
                     <Table.Td className="font-medium text-white">{item.product.name}</Table.Td>
                     <Table.Td className="font-mono text-gray-300">{item.product.price.toLocaleString()} MMK</Table.Td>
                     <Table.Td>
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                        item.quantity > 10 ? 'bg-teal-950 text-teal-400 border border-teal-800' : 'bg-red-950 text-red-400 border border-red-800 animate-pulse'
-                      }`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${item.quantity > 10 ? 'bg-teal-950 text-teal-400 border border-teal-800' : 'bg-red-950 text-red-400 border border-red-800 animate-pulse'
+                        }`}>
                         {item.quantity} ခု ({item.quantity > 10 ? 'လက်ကျန်အဆင်ပြေ' : 'လက်ကျန်ပြတ်လုနီးပါး'})
                       </span>
                     </Table.Td>
