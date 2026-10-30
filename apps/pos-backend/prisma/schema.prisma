@@ -21,6 +21,7 @@ model User {
   role      UserRole @default(CASHIER)
   createdAt DateTime @default(now())
   orders    Order[]
+  sales     Sale[]
 }
 
 // ၂။ ကုန်ပစ္စည်း အမျိုးအစား
@@ -54,6 +55,7 @@ model Product {
   orderItems        OrderItem[]
   stockHistories    StockHistory[]
   branchStocks      ProductBranchStock[] // ဆိုင်အလိုက် လက်ကျန်များ ချိတ်ဆက်ခြင်း
+  saleItems         SaleItem[]
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 }
@@ -120,7 +122,8 @@ model Branch {
   
   // ဆိုင်ခွဲတစ်ခုချင်းစီနှင့် ချိတ်ဆက်မှုများ
   products  ProductBranchStock[] 
-  orders    Order[]              
+  orders    Order[]
+  sales     Sale[]              
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -150,4 +153,37 @@ model ProductBranchStock {
   quantity  Float   @default(0) // ထိုဆိုင်ခွဲတွင် ရှိသော ကုန်ပစ္စည်းလက်ကျန် အရေအတွက်
 
   @@unique([productId, branchId]) // ပစ္စည်းတစ်ခုသည် ဆိုင်ခွဲတစ်ခုချင်းစီတွင် တစ်ကြောင်းစီသာ ရှိရမည်
+}
+
+// ၁။ အရောင်းဘေလ် (Sale) Model
+model Sale {
+  id          String      @id @default(uuid())
+  totalAmount Decimal     @db.Decimal(10, 2) // စုစုပေါင်းကျသင့်ငွေ
+  
+  // ဆက်စပ်မှုများ
+  branchId    String
+  branch      Branch      @relation(fields: [branchId], references: [id])
+  
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  
+  items       SaleItem[]  // ဘေလ်ထဲမှာပါတဲ့ ပစ္စည်းစာရင်း
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// ၂။ ဘေလ်ထဲက ပစ္စည်းတစ်ခုချင်း (SaleItem) Model
+model SaleItem {
+  id        String   @id @default(uuid())
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2) // ရောင်းချသည့်ဈေး
+  
+  saleId    String
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  createdAt DateTime @default(now())
 }

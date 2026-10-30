@@ -10,6 +10,7 @@ import { BranchesModule } from './branch/branches.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { ProductBranchStockModule } from './product-branch-stock/product-branch-stock.module.js';
+import { SalesModule } from './sales/sales.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProductBranchStockModule } from './product-branch-stock/product-branch-
     OrdersModule,
     ProductsModule,
     ProductBranchStockModule,
+    SalesModule
   ],
   controllers: [AppController],
   providers: [

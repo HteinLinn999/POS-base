@@ -38,8 +38,9 @@ import { SaleType } from '@pos/shared-types';
 import { useCartStore, type ActiveView } from './store/useCartStore';
 
 import { api } from './api/axios';
-import { BranchStockView } from './components/BranchStockView';
-import { BranchSettingsView } from './views/BranchSettingsView';
+import { BranchStockView } from './pages/BranchStockView';
+import { BranchSettingsView } from './pages/BranchSettingsView';
+import { SalesHistoryView } from './pages/SalesHistoryView';
 
 interface IThemeConfig {
   id: string;
@@ -294,7 +295,7 @@ function App() {
 
                   { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
 
-                  { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
+                  { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },                  
                   { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
                   { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
                   { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
@@ -373,25 +374,33 @@ function App() {
             </div>
           }
 
-          <Select
-            placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
-            data={branchDropdownData}
-            value={currentBranchId}
-            onChange={(val) => {
-              console.log('currentBranchId :', val)
-              if (val) {
-                setCurrentBranchId(val);
-                notifications.show({
-                  title: 'ဆိုင်ခွဲပြောင်းလဲပြီးပါပြီ 🟢',
-                  message: 'လက်ရှိရောင်းချမည့် ဆိုင်ခွဲကို အောင်မြင်စွာ ပြောင်းလိုက်ပါပြီ',
-                  color: 'teal'
-                });
-              }
-            }}
-            styles={{
-              input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '220px' }
-            }}
-          />
+          {
+            (activeView === 'branch-stocks' ||
+              activeView === 'history' ||
+              activeView === 'inventory' ||
+              activeView === 'counter') && (
+              <Select
+                placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
+                data={branchDropdownData}
+                value={currentBranchId}
+                onChange={(val) => {
+                //  console.log('currentBranchId :', val)
+                  if (val) {
+                    setCurrentBranchId(val);
+                    notifications.show({
+                      title: 'ဆိုင်ခွဲပြောင်းလဲပြီးပါပြီ 🟢',
+                      message: 'လက်ရှိရောင်းချမည့် ဆိုင်ခွဲကို အောင်မြင်စွာ ပြောင်းလိုက်ပါပြီ',
+                      color: 'teal'
+                    });
+                  }
+                }}
+                styles={{
+                  input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '220px' }
+                }}
+              />
+            )
+          }
+
 
           <Menu shadow="md" width={200} trigger="click" position="bottom-end">
             <Menu.Target>
@@ -476,118 +485,126 @@ function App() {
         ) : activeView === 'branch-settings' ? (
           <BranchSettingsView />
         ) : activeView === 'history' ? (
-          <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
-            <div className="grid grid-cols-3 gap-4 shrink-0">
-              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
-                <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
-                  {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
-                </Text>
-              </Paper>
+            // <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
+            //   <div className="grid grid-cols-3 gap-4 shrink-0">
+            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
+            //       <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
+            //         {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
+            //       </Text>
+            //     </Paper>
 
-              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-                <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
-                <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
-                  {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
-                </Text>
-              </Paper>
+            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
+            //       <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
+            //         {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
+            //       </Text>
+            //     </Paper>
 
-              <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-                <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
-                <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
-                  {salesOrders.length > 0
-                    ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
-                    : 0
-                  } <span className="text-xs font-bold">MMK</span>
-                </Text>
-              </Paper>
-            </div>
+            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
+            //       <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
+            //         {salesOrders.length > 0
+            //           ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
+            //           : 0
+            //         } <span className="text-xs font-bold">MMK</span>
+            //       </Text>
+            //     </Paper>
+            //   </div>
 
-            {salesOrders.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-                <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
-                  <div className="mb-4">
-                    <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
-                    <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
-                  </div>
-                  <BarChart
-                    h={220}
-                    data={salesOrders.map((order) => ({
-                      date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
-                      "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
-                    })).reverse()}
-                    dataKey="date"
-                    series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
-                    tickLine="y"
-                    gridAxis="x"
-                    textColor="#9ca3af"
-                    className="font-mono text-xs"
-                  />
-                </Paper>
+            //   {salesOrders.length > 0 && (
+            //     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+            //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
+            //         <div className="mb-4">
+            //           <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
+            //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
+            //         </div>
+            //         <BarChart
+            //           h={220}
+            //           data={salesOrders.map((order) => ({
+            //             date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
+            //             "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
+            //           })).reverse()}
+            //           dataKey="date"
+            //           series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
+            //           tickLine="y"
+            //           gridAxis="x"
+            //           textColor="#9ca3af"
+            //           className="font-mono text-xs"
+            //         />
+            //       </Paper>
 
-                <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
-                  <div className="mb-4">
-                    <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
-                    <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
-                  </div>
-                  <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
-                    <DonutChart
-                      size={140}
-                      thickness={20}
-                      data={[
-                        { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
-                        { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
-                        { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
-                      ]}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                </Paper>
-              </div>
-            )}
+            //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
+            //         <div className="mb-4">
+            //           <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
+            //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
+            //         </div>
+            //         <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
+            //           <DonutChart
+            //             size={140}
+            //             thickness={20}
+            //             data={[
+            //               { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
+            //               { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
+            //               { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
+            //             ]}
+            //             className="font-mono text-xs"
+            //           />
+            //         </div>
+            //       </Paper>
+            //     </div>
+            //   )}
 
-            <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
-              <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
-                <Table.Thead className={`${activeTheme.bg}`}>
-                  <Table.Tr>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
-                    <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {salesOrders.length === 0 ? (
-                    <Table.Tr>
-                      <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
-                        <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  ) : (
-                    salesOrders.map((order) => (
-                      <Table.Tr
-                        key={order.id}
-                        className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          openDetail();
-                        }}
-                      >
-                        <Table.Td className="font-mono text-white font-bold">{order.invoiceNo}</Table.Td>
-                        <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
-                        <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
-                        <Table.Td className="font-mono text-gray-400">{Number(order.cashReceived || 0).toLocaleString()} MMK</Table.Td>
-                        <Table.Td className="font-mono text-gray-400">{Number(order.changeGiven || 0).toLocaleString()} MMK</Table.Td>
-                        <Table.Td className="font-semibold text-[#10b981] font-mono">{Number(order.totalAmount || 0).toLocaleString()} MMK</Table.Td>
-                      </Table.Tr>
-                    ))
-                  )}
-                </Table.Tbody>
-              </Table>
-            </Paper>
-          </div>
+            //   <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
+            //     <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+            //       <Table.Thead className={`${activeTheme.bg}`}>
+            //         <Table.Tr>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
+            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+            //         </Table.Tr>
+            //       </Table.Thead>
+            //       <Table.Tbody>
+            //         {salesOrders.length === 0 ? (
+            //           <Table.Tr>
+            //             <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
+            //               <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
+            //             </Table.Td>
+            //           </Table.Tr>
+            //         ) : (
+            //           salesOrders.map((order) => (
+            //             <Table.Tr
+            //               key={order.id}
+            //               className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
+            //               onClick={() => {
+            //                 setSelectedOrder(order);
+            //                 openDetail();
+            //               }}
+            //             >
+            //               <Table.Td className="font-mono text-white font-bold">{order.invoiceNo}</Table.Td>
+            //               <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
+            //               <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
+            //               <Table.Td className="font-mono text-gray-400">{Number(order.cashReceived || 0).toLocaleString()} MMK</Table.Td>
+            //               <Table.Td className="font-mono text-gray-400">{Number(order.changeGiven || 0).toLocaleString()} MMK</Table.Td>
+            //               <Table.Td className="font-semibold text-[#10b981] font-mono">{Number(order.totalAmount || 0).toLocaleString()} MMK</Table.Td>
+            //             </Table.Tr>
+            //           ))
+            //         )}
+            //       </Table.Tbody>
+            //     </Table>
+            //   </Paper>
+            // </div>
+          <SalesHistoryView 
+            currentBranchId={currentBranchId} 
+            activeTheme={{
+              panel: 'bg-[#1f2028]',
+              border: 'border-[#2e303a]',
+              bg: 'bg-[#16171d]'
+            }}
+          />
         ) : activeView === 'inventory' ? (
           <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
             <div className="mb-6">
