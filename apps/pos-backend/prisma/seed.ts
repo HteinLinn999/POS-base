@@ -1,7 +1,7 @@
 // import { PrismaClient } from '@prisma/client';
 //import { SaleType } from '@pos/shared-types';
 
-import { PrismaClient, SaleType } from '@prisma/client';
+import { PrismaClient, SaleType } from '../src/generated/prisma/client.js';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 
@@ -11,7 +11,6 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-
   // ═══════════════════════════════════════════════════════════
   // Step 0: တရားဝင် ဝန်ထမ်း Cashier အား အရင်ဆောက်ပေးခြင်း ⭐ (Foreign Key အောင်မြင်စေရန်)
   // ═══════════════════════════════════════════════════════════
@@ -22,8 +21,8 @@ async function main() {
       id: '9f074d0e-953e-4b40-9a3d-425886616238', //useCartStore ထဲက UUID နှင့် အတိအကျ ကွက်တိ ကိုက်ညီရပါမည် 🎯
       username: 'cashier_01',
       password: 'password123',
-      role: 'CASHIER'
-    }
+      role: 'CASHIER',
+    },
   });
   // ═══════════════════════════════════════════════════════════
   // Step 1: Category များ အရင် ဖန်တီး

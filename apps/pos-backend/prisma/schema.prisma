@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"  
-
 }
 
 generator client {
@@ -15,11 +14,11 @@ enum UserRole {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
+  id        String    @id @default(uuid())
+  username  String    @unique
   password  String
-  role      UserRole @default(CASHIER)
-  createdAt DateTime @default(now())
+  role      UserRole  @default(CASHIER)
+  createdAt DateTime  @default(now())
   orders    Order[]
   sales     Sale[]
 }
@@ -72,13 +71,13 @@ model StockHistory {
   id              String               @id @default(uuid())
   productId       String
   product         Product              @relation(fields: [productId], references: [id])
-  quantity        Float
+  quantity        Int
   transactionType StockTransactionType
   reason          String? // ဥပမာ - "ဝယ်သူဝယ်ယူမှု" သို့မဟုတ် "အလှူ"
   createdAt       DateTime             @default(now())
 }
 
-// ၆။ အရောင်းဘောက်ချာ (Invoices) - 🔗 branchId ထည့်သွင်းပြီး အပြည့်အစုံ
+// ၆။ အရောင်းဘောက်ချာ (Invoices)
 model Order {
   id            String      @id @default(uuid())
   invoiceNo     String      @unique
@@ -90,55 +89,55 @@ model Order {
   cashierId     String
   cashier       User        @relation(fields: [cashierId], references: [id])
   
-  // 🔗 အသစ်တိုးလိုက်သော ဆိုင်ခွဲ (Branch) ချိတ်ဆက်မှု Field
   branchId      String
   branch        Branch      @relation(fields: [branchId], references: [id])
 
+  customerId    String?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
+
   orderItems    OrderItem[]
   createdAt     DateTime    @default(now())
-
-  customerId String?
-  customer Customer? @relation(fields: [customerId], references: [id])
 }
 
 // ၇။ ဘောက်ချာတစ်ခုချင်းစီ၏ အသေးစိတ် ပစ္စည်းစာရင်း
 model OrderItem {
-  id        String  @id @default(uuid())
+  id        String   @id @default(uuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
   quantity  Float
-  unitPrice Float // ထိုအချိန်က ရောင်းလိုက်သည့် ဈေးနှုန်း
+  unitPrice Float    // ထိုအချိန်က ရောင်းလိုက်သည့် ဈေးနှုန်း
 }
 
 // ၈။ ဆိုင်ခွဲများ (Branches) Table
 model Branch {
-  id        String   @id @default(uuid())
-  name      String   @unique // ဥပမာ - "City Mart - Junction Square"
-  code      String   @unique // ဥပမာ - "BR-YGN-01"
+  id        String               @id @default(uuid())
+  name      String               @unique // ဥပမာ - "City Mart - Junction Square"
+  code      String               @unique // ဥပမာ - "BR-YGN-01"
   address   String?
-  phone     String? 
+  phone     String?  
   
-  // ဆိုင်ခွဲတစ်ခုချင်းစီနှင့် ချိတ်ဆက်မှုများ
   products  ProductBranchStock[] 
   orders    Order[]
-  sales     Sale[]              
+  sales     Sale[]               
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 }
+
 // ဖောက်သည်အသင်းဝင်များ (Customer Loyalty & CRM)
 model Customer {
-  id           String   @id @default(uuid())
-  name         String
-  phone        String   @unique // ဖုန်းနံပါတ်ဖြင့် မန်ဘာရှာဖွေရန်
-  tier         String   @default("REGULAR") // REGULAR, SILVER, GOLD, PLATINUM
-  points       Float    @default(0)   // စုဆောင်းရရှိထားသော အမှတ်များ
-  totalSpent   Float    @default(0)   // စုစုပေါင်း ဝယ်ယူခဲ့သည့်ပမာဏ
-  orders       Order[]  // ထိုဖောက်သည် ဝယ်ယူခဲ့သော ဘောက်ချာများ
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String    @id @default(uuid())
+  name       String
+  phone      String    @unique // ဖုန်းနံပါတ်ဖြင့် မန်ဘာရှာဖွေရန်
+  tier       String    @default("REGULAR") // REGULAR, SILVER, GOLD, PLATINUM
+  points     Float     @default(0)   // စုဆောင်းရရှိထားသော အမှတ်များ
+  totalSpent Float     @default(0)   // စုစုပေါင်း ဝယ်ယူခဲ့သည့်ပမာဏ
+  orders     Order[]   // ထိုဖောက်သည် ဝယ်ယူခဲ့သော ဘောက်ချာများ
+  sales      Sale[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 // ၉။ ဆိုင်အလိုက် ကုန်ပစ္စည်းလက်ကျန် (Multi-Store Stock Tracking) Table
@@ -155,35 +154,38 @@ model ProductBranchStock {
   @@unique([productId, branchId]) // ပစ္စည်းတစ်ခုသည် ဆိုင်ခွဲတစ်ခုချင်းစီတွင် တစ်ကြောင်းစီသာ ရှိရမည်
 }
 
-// ၁။ အရောင်းဘေလ် (Sale) Model
+// ၁၀။ အရောင်းဘေလ် (Sale Analytics) Model
 model Sale {
-  id          String      @id @default(uuid())
-  totalAmount Decimal     @db.Decimal(10, 2) // စုစုပေါင်းကျသင့်ငွေ
+  id            String      @id @default(uuid())
+  invoiceNo     String      @unique // 👈 အရောင်းမှတ်တမ်းအတွက် ဘောက်ချာနံပါတ်
+  totalAmount   Float
+  cashReceived  Float
+  changeGiven   Float
+  paymentMethod String      @default("CASH")
   
-  // ဆက်စပ်မှုများ
-  branchId    String
-  branch      Branch      @relation(fields: [branchId], references: [id])
+  cashierId     String
+  cashier       User        @relation(fields: [cashierId], references: [id])
   
-  userId      String
-  user        User        @relation(fields: [userId], references: [id])
+  branchId      String
+  branch        Branch      @relation(fields: [branchId], references: [id])
   
-  items       SaleItem[]  // ဘေလ်ထဲမှာပါတဲ့ ပစ္စည်းစာရင်း
+  customerId    String?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
   
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  saleItems     SaleItem[]  // ဘေလ်ထဲမှာပါတဲ့ ပစ္စည်းစာရင်း
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
-// ၂။ ဘေလ်ထဲက ပစ္စည်းတစ်ခုချင်း (SaleItem) Model
+// ၁၁။ ဘေလ်ထဲက ပစ္စည်းတစ်ခုချင်း (SaleItem) Model
 model SaleItem {
   id        String   @id @default(uuid())
-  quantity  Int
-  price     Decimal  @db.Decimal(10, 2) // ရောင်းချသည့်ဈေး
-  
   saleId    String
   sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  
   productId String
   product   Product  @relation(fields: [productId], references: [id])
-  
+  quantity  Float
+  unitPrice Float
   createdAt DateTime @default(now())
 }

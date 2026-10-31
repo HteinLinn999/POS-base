@@ -23,7 +23,7 @@ export class SalesService {
         ...dateFilter,
       },
       include: {
-        items: {
+        saleItems: {
           include: {
             product: true, 
           },
