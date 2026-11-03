@@ -32,7 +32,8 @@ import {
   IconMinus,
   IconPlus,
   IconTrash,
-  IconBuildingStore
+  IconBuildingStore,
+  IconAdjustments
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
 import { useCartStore, type ActiveView } from './store/useCartStore';
@@ -41,6 +42,7 @@ import { api } from './api/axios';
 import { BranchStockView } from './pages/BranchStockView';
 import { BranchSettingsView } from './pages/BranchSettingsView';
 import { SalesHistoryView } from './pages/SalesHistoryView';
+import { StockAdjustmentView } from './pages/StockAdjustmentView';
 
 interface IThemeConfig {
   id: string;
@@ -292,6 +294,7 @@ function App() {
                     id: 'branch-stocks', label: 'ဆိုင်ခွဲအလိုက် လက်ကျန်',
                     icon: <IconBuildingStore size={20} />
                   },
+                  { id: 'stock-adjustment', label: 'စာရင်းညှိနှိုင်းခြင်းနှင့် မှတ်တမ်း', icon: <IconAdjustments size={20} /> },
 
                   { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
 
@@ -378,7 +381,8 @@ function App() {
             (activeView === 'branch-stocks' ||
               activeView === 'history' ||
               activeView === 'inventory' ||
-              activeView === 'counter') && (
+              activeView === 'counter'||
+              activeView === 'stock-adjustment') && (
               <Select
                 placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
                 data={branchDropdownData}
@@ -484,7 +488,9 @@ function App() {
           <BranchStockView currentBranchId={currentBranchId} />
         ) : activeView === 'branch-settings' ? (
           <BranchSettingsView />
-        ) : activeView === 'history' ? (
+        ) :activeView === 'stock-adjustment' ?(
+        <StockAdjustmentView currentBranchId={currentBranchId}/>          
+        ) :activeView === 'history' ? (
             // <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
             //   <div className="grid grid-cols-3 gap-4 shrink-0">
             //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>

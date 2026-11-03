@@ -43,6 +43,7 @@ export type ActiveView =
   | "crm"
   | "branch-stocks"
   | "branch-settings"
+  | "stock-adjustment"
   | "settings";
     
 

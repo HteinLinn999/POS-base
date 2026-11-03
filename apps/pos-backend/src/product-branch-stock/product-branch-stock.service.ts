@@ -6,8 +6,14 @@ export class ProductBranchStockService {
   constructor(private prisma: PrismaService) {}
 
   async getStockByBranch(branchId: string) {
-    if (!branchId) {
-      throw new BadRequestException('branchId is missing');
+    const branchExists = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+    });
+
+    if (!branchExists) {
+      throw new BadRequestException(
+        `ပေးထားသော branchId (${branchId}) မှာ ဒေတာဘေ့စ်ထဲတွင် မရှိပါ။ ဆိုင်ခွဲအသစ် ပြန်ရွေးပေးပါ။`,
+      );
     }
 
     const products = await this.prisma.product.findMany();
@@ -24,7 +30,7 @@ export class ProductBranchStockService {
         create: {
           productId: product.id,
           branchId: branchId,
-          quantity: 0,
+              quantity: product.stockQuantity, 
         },
       });
     }
@@ -100,8 +106,7 @@ export class ProductBranchStockService {
         where: { branchId: toBranchId, productId: productId },
       });
 
-
-        if (!targetStock) {
+      if (!targetStock) {
         await tx.productBranchStock.create({
           data: { branchId: toBranchId, productId, quantity },
         });
@@ -112,6 +117,72 @@ export class ProductBranchStockService {
         });
       }
       return { success: true, message: 'ပစ္စည်းလွှဲပြောင်းမှု အောင်မြင်ပါသည်' };
+    });
+  }
+
+  async adjustStock(data: {
+    branchId: string;
+    productId: string;
+    quantity: number;
+    transactionType: 'ADJUSTMENT' | 'STOCK_OUT';
+    reason: string;
+  }) {
+    const { branchId, productId, quantity, transactionType, reason } = data;
+
+    return await this.prisma.$transaction(async (tx) => {
+      let branchStock = await tx.productBranchStock.findFirst({
+        where: { branchId, productId },
+      });
+      if (!branchStock) {
+        branchStock = await tx.productBranchStock.create({
+          data: { branchId, productId, quantity: 0 },
+        });
+      }
+      const newQty = branchStock.quantity + quantity;
+      if (newQty < 0) {
+        throw new BadRequestException(
+          'လက်ကျန်ပမာဏထက် ကျော်လွန်၍ လျှော့ချ၍ မရပါ',
+        );
+      }
+
+      // ၂။ ProductBranchStock ကို ချိန်ညှိခြင်း
+      await tx.productBranchStock.update({
+        where: { id: branchStock.id },
+        data: { quantity: newQty },
+      });
+
+      // ၃။ ပင်မ Product table ၏ stockQuantity ကိုလည်း လိုက်လံ ညှိပေးခြင်း
+      await tx.product.update({
+        where: { id: productId },
+        data: { stockQuantity: { increment: quantity } },
+      });
+
+      // ၄. StockHistory ထဲတွင် အသေးစိတ် မှတ်တမ်းတင်ခြင်း (Audit Trail)
+      await tx.stockHistory.create({
+        data: {
+          productId,
+          quantity: Math.abs(quantity),
+          transactionType: transactionType as any,
+          reason: `[Branch: ${branchId}] ${reason}`,
+        },
+      });
+
+      return {
+        success: true,
+        message: 'စနစ်အတွင်း Stock စာရင်း ချိန်ညှိမှု အောင်မြင်ပါသည်',
+      };
+    });
+  }
+  // 📊 Audit Trail / History အားလုံး ဆွဲထုတ်ရန်
+  async getStockHistories() {
+    return await this.prisma.stockHistory.findMany({
+      include: {
+        product: {
+          select: { name: true, sku: true, barcode: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100, // နောက်ဆုံးမှတ်တမ်း ၁၀၀ စောင်
     });
   }
 }

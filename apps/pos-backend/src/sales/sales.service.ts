@@ -28,7 +28,7 @@ export class SalesService {
             product: true, 
           },
         },
-        user: {
+        cashier: {
           select: { username: true }, 
         },
       },

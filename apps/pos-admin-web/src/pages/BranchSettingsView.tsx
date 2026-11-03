@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Table, TextInput, Loader, Paper, Text, Group, Button, Modal, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconBuildingStore, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconBuildingStore, IconEdit, IconPlus, IconTrash } from '@tabler/icons-react';
 import { api } from '../api/axios';
 import axios from 'axios';
 import { useCartStore } from '../store/useCartStore';
 
 export const BranchSettingsView = () => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   const [opened, setOpened] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -16,48 +18,86 @@ export const BranchSettingsView = () => {
 
   const queryClient = useQueryClient();
 
-  // ၁။ ဆိုင်ခွဲအားလုံးကို ဆွဲထုတ်ခြင်း
-  const { data: branches, isLoading, error } = useQuery({
-    queryKey: ['branches'],
-    queryFn: async () => {
-      const res = await api.get('/branches');
-      return res.data;
-    },
-  });
-
   const fetchBranches = useCartStore((state) => state.fetchBranches);
 
+  // ၁။ ဆိုင်ခွဲအားလုံးကို ဆွဲထုတ်ခြင်း
+  const { data: branches, isLoading, error } = useQuery(
+    {
+      queryKey: ['branches'],
+      queryFn: async () => {
+        const res = await api.get('/branches');
+        return res.data;
+      },
+    }
+  );
+
   // ၂။ ဆိုင်ခွဲအသစ် ဆောက်ရန် Mutation
-  const createBranchMutation = useMutation({
-    mutationFn: async (newBranch: {
-      name: string;
-      code: string; address?: string; phone?: string
-    }) => {
-      return await api.post('/branches', newBranch);
+  const createBranchMutation = useMutation(
+    {
+      mutationFn: async (
+        newBranch: {
+          name: string;
+          code: string;
+          address?: string;
+          phone?: string
+        }) => {
+        return await api.post('/branches', newBranch);
+      },
+      onSuccess: async () => {
+        notifications.show({
+          title: 'အောင်မြင်ပါသည်',
+          message: 'ဆိုင်ခွဲအသစ် ထည့်သွင်းပြီးပါပြီ', color: 'teal'
+        });
+        queryClient.invalidateQueries({ queryKey: ['branches'] });
+        await fetchBranches();
+        setOpened(false);
+        setName('');
+        setCode('');
+        setAddress('');
+        setPhone('');
+      },
+      onError: (error: unknown) => {
+        let msg = 'ဆိုင်ခွဲထည့်သွင်းခြင်း မအောင်မြင်ပါ';
+        if (axios.isAxiosError(error)) {
+          msg = error.response?.data?.message || msg;
+        }
+        notifications.show({ title: 'အမှားအယွင်းရှိပါသည်', message: msg, color: 'red' });
+      },
+    }
+  );
+
+  //၃။ ဆိုင်ခွဲပြင်ရန်
+  const updateBranchMutation = useMutation({
+    mutationFn: async (
+      data: {
+        id: string;
+        payload: {
+          name: string;
+          code: string;
+          address?: string;
+          phone?: string
+        }
+      }
+    ) => {
+      return await api.patch(`/branches/${data.id}`, data.payload)
     },
-    onSuccess: async() => {
-      notifications.show({
-        title: 'အောင်မြင်ပါသည်',
-        message: 'ဆိုင်ခွဲအသစ် ထည့်သွင်းပြီးပါပြီ', color: 'teal'
-      });
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    onSuccess: async () => {
+      notifications.show({ title: 'အောင်မြင်ပါသည်', message: 'ဆိုင်ခွဲအချက်အလက် ပြင်ဆင်ပြီးပါပြီ', color: 'teal' });
+      queryClient.invalidateQueries({ queryKey: ['branches'] })
       await fetchBranches();
-      setOpened(false);
-      setName('');
-      setCode('');
-      setAddress('');
-      setPhone('');
+      handleCloseModal();
     },
-    onError: (error: unknown) => {
-      let msg = 'ဆိုင်ခွဲထည့်သွင်းခြင်း မအောင်မြင်ပါ';
+    onError: async (error: unknown) => {
+      let msg = 'ဆိုင်ခွဲပြင်ဆင်ခြင်း မအောင်ပြင်ပါ';
       if (axios.isAxiosError(error)) {
         msg = error.response?.data?.message || msg;
       }
       notifications.show({ title: 'အမှားအယွင်းရှိပါသည်', message: msg, color: 'red' });
-    },
-  });
+    }
+  })
 
-  // ၃။ ဆိုင်ခွဲဖျက်ရန် Mutation
+
+  // ၄။ ဆိုင်ခွဲဖျက်ရန် Mutation
   const deleteBranchMutation = useMutation({
     mutationFn: async (id: string) => {
       return await api.delete(`/branches/${id}`);
@@ -75,6 +115,60 @@ export const BranchSettingsView = () => {
     },
   });
 
+  // const handleCreateBranch = () => {
+  //   if (!name || !code) {
+  //     notifications.show({ title: 'သတိပေးချက်', message: 'ဆိုင်ခွဲအမည်နှင့် ကုဒ် (Code) ထည့်ရန် လိုအပ်ပါသည်။', color: 'yellow' });
+  //     return;
+  //   }
+  //   createBranchMutation.mutate({ name, code, address, phone });
+  // };
+
+
+  const handleOpenCrate = () => {
+    setEditingId(null);
+    setName('');
+    setCode('');
+    setAddress('');
+    setPhone('');
+    setOpened(true);
+  }
+
+  const handleOpenEdit = (branch: any) => {
+    setEditingId(branch.id);
+    setName(branch.name);
+    setCode(branch.code);
+    setAddress(branch.address || '');
+    setPhone(branch.phone || '');
+    setOpened(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpened(false);
+    setEditingId(null);
+    setName('');
+    setCode('');
+    setAddress('');
+    setPhone('');
+  };
+
+
+  const handleSubmitBranch = () => {
+    if (!name || !code) {
+      notifications.show({ title: 'သတိပေးချက်', message: 'ဆိုင်ခွဲအမည်နှင့် ကုဒ် (Code) ထည့်ရန် လိုအပ်ပါသည်။', color: 'yellow' })
+    }
+    if (editingId) {
+      // Update Mode
+      updateBranchMutation.mutate({
+        id: editingId,
+        payload: { name, code, address, phone },
+      });
+    } else {
+      // Create Mode
+      createBranchMutation.mutate({ name, code, address, phone });
+    }
+
+  }
+
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center p-20">
@@ -90,16 +184,6 @@ export const BranchSettingsView = () => {
       </Paper>
     );
   }
-
-  const handleCreateBranch = () => {
-    if (!name || !code) {
-      notifications.show({ title: 'သတိပေးချက်', message: 'ဆိုင်ခွဲအမည်နှင့် ကုဒ် (Code) ထည့်ရန် လိုအပ်ပါသည်။', color: 'yellow' });
-      return;
-    }
-    createBranchMutation.mutate({ name, code, address, phone });
-  };
-
-
   return (
     <div className="flex flex-1 flex-col gap-6 overflow-y-auto pr-2 p-6">
       {/* Header & Add Button */}
@@ -110,13 +194,13 @@ export const BranchSettingsView = () => {
               <IconBuildingStore size={28} className="text-cyan-400" />
               <Text size="xl" fw={800} className="text-white">ဆိုင်ခွဲများ စီမံခန့်ခွဲမှု (Branch Settings)</Text>
             </Group>
-            <Text size="xs" c="dimmed" mt={4}>ဆိုင်ခွဲအသစ်များ ထည့်သွင်းခြင်းနှင့် စီမံခန့်ခွဲရန်</Text>
+            <Text size="xs" c="dimmed" mt={4}>ဆိုင်ခွဲအသစ်များ ထည့်သွင်းခြင်းနှင့် ပြင်ဆင်ရန်</Text>
           </div>
 
           <Button
             color="cyan"
             leftSection={<IconPlus size={18} />}
-            onClick={() => setOpened(true)}
+            onClick={handleOpenCrate}
           >
             ဆိုင်ခွဲအသစ် ထည့်ရန်
           </Button>
@@ -145,17 +229,30 @@ export const BranchSettingsView = () => {
                     <Table.Td className="text-gray-300">{branch.address || '-'}</Table.Td>
                     <Table.Td className="font-mono text-gray-300">{branch.phone || '-'}</Table.Td>
                     <Table.Td className="text-right">
-                      {branch.code !== 'HQ-001' && (
+
+                      <Group gap='xs' justify='flex-end'>
                         <Button
                           size="xs"
                           variant="light"
-                          color="red"
-                          leftSection={<IconTrash size={14} />}
-                          onClick={() => deleteBranchMutation.mutate(branch.id)}
+                          color="cyan"
+                          leftSection={<IconEdit size={14} />}
+                          onClick={() => handleOpenEdit(branch)}
                         >
-                          ဖျက်ရန်
+                          ပြင်ရန်
                         </Button>
-                      )}
+
+                        {branch.code !== 'HQ-001' && (
+                          <Button
+                            size="xs"
+                            variant="light"
+                            color="red"
+                            leftSection={<IconTrash size={14} />}
+                            onClick={() => deleteBranchMutation.mutate(branch.id)}
+                          >
+                            ဖျက်ရန်
+                          </Button>
+                        )}
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 ))
@@ -171,8 +268,13 @@ export const BranchSettingsView = () => {
         </div>
       </Paper>
 
-      {/* Create Branch Modal */}
-      <Modal opened={opened} onClose={() => setOpened(false)} title="ဆိုင်ခွဲအသစ် ထည့်သွင်းခြင်း" centered styles={{ content: { backgroundColor: '#1f2028', color: '#fff' }, header: { backgroundColor: '#1f2028' } }}>
+
+      {/* Create / Edit Branch Modal */}
+
+      <Modal opened={opened} onClose={handleCloseModal}
+        title="ဆိုင်ခွဲအသစ် ထည့်သွင်းခြင်း"
+        centered
+        styles={{ content: { backgroundColor: '#1f2028', color: '#fff' }, header: { backgroundColor: '#1f2028' } }}>
         <Stack>
           <TextInput
             label="ဆိုင်ခွဲအမည် (Branch Name)"
@@ -205,7 +307,9 @@ export const BranchSettingsView = () => {
 
           <Group justify="flex-end" mt="md">
             <Button variant="default" onClick={() => setOpened(false)} className="bg-transparent text-gray-300 border-gray-600">မလုပ်တော့ပါ</Button>
-            <Button color="cyan" onClick={handleCreateBranch} loading={createBranchMutation.isPending}>ဖန်တီးမည်</Button>
+            <Button color="cyan" onClick={handleSubmitBranch} loading={createBranchMutation.isPending}>
+              {editingId ? "ပြင်ဆင်မည်" : "ဖန်တီးမည်"}
+            </Button>
           </Group>
         </Stack>
       </Modal>

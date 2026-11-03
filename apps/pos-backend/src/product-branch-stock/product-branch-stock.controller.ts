@@ -14,13 +14,17 @@ export class ProductBranchStockController {
 
   @Get(':branchId')
   async getStocksByBranch(@Param('branchId') branchId: string) {
-    
     console.log('branchId : ', branchId);
     if (!branchId || branchId === 'undefined' || branchId === 'null') {
       throw new BadRequestException('ဆိုင်ခွဲ ID (branchId) လိုအပ်ပါသည်။');
     }
 
     return this.stockService.getStockByBranch(branchId);
+  }
+
+  @Get('history/audit')
+  async getStockHistories() {
+    return this.stockService.getStockHistories();
   }
 
   @Post('update')
@@ -45,5 +49,19 @@ export class ProductBranchStockController {
     },
   ) {
     return await this.stockService.transferStock(body);
+  }
+
+  @Post('adjust')
+  async adjustStock(
+    @Body()
+    body: {
+      branchId: string;
+      productId: string;
+      quantity: number;
+      transactionType: 'ADJUSTMENT' | 'STOCK_OUT';
+      reason: string;
+    },
+  ) {
+    return this.stockService.adjustStock(body);
   }
 }
