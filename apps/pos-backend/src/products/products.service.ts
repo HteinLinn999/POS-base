@@ -10,6 +10,12 @@ import { CreateProductDto } from './dto/create-product.dto.js';
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
+
+  async findAll(){
+    return this.prisma.product.findMany({
+      orderBy:{name :'asc'}
+    })
+  }
   async createProduct(dto: CreateProductDto) {
     // ၁။ Barcode ရှိပြီးသား ဖြစ်နေပါက စစ်ဆေးခြင်း
     const existingProduct = await this.prisma.product.findUnique({

@@ -15,6 +15,11 @@ import { CreateProductDto } from './dto/create-product.dto.js';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @Get()
+  async findAll() {
+    return this.productsService.findAll();
+  }
+
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async create(@Body() createProductDto: CreateProductDto) {
@@ -28,19 +33,17 @@ export class ProductsController {
     return product;
   }
 
-  @Post('stock-in') 
+  @Post('stock-in')
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async stockIn(@Body() body: { barcode: string; quantity: number }) {
     return this.productsService.stockInByBarcode(body.barcode, body.quantity);
   }
-    @Get('categories')
+  @Get('categories')
   async getCategories() {
     return this.productsService.getAllCategories();
   }
-    @Get('low-stock') // GET /products/low-stock ဝင်ပေါက်လမ်းကြောင်းဖွင့်လှစ်ခြင်း 🎯
+  @Get('low-stock') // GET /products/low-stock ဝင်ပေါက်လမ်းကြောင်းဖွင့်လှစ်ခြင်း 🎯
   async getLowStock() {
     return this.productsService.getLowStockProducts();
   }
-
-
 }

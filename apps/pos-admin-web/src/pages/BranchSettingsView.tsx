@@ -153,8 +153,13 @@ export const BranchSettingsView = () => {
 
 
   const handleSubmitBranch = () => {
-    if (!name || !code) {
-      notifications.show({ title: 'သတိပေးချက်', message: 'ဆိုင်ခွဲအမည်နှင့် ကုဒ် (Code) ထည့်ရန် လိုအပ်ပါသည်။', color: 'yellow' })
+    if (!name.trim() || !code.trim()) {
+      notifications.show({
+        title: 'သတိပေးချက်',
+        message: 'ဆိုင်ခွဲအမည်နှင့် ကုဒ် (Code) ထည့်ရန် လိုအပ်ပါသည်။',
+        color: 'yellow',
+      });
+      return;
     }
     if (editingId) {
       // Update Mode
@@ -184,33 +189,36 @@ export const BranchSettingsView = () => {
       </Paper>
     );
   }
+  const isSaving = createBranchMutation.isPending || updateBranchMutation.isPending;
+
   return (
-    <div className="flex flex-1 flex-col gap-6 overflow-y-auto pr-2 p-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-4 lg:p-6">
       {/* Header & Add Button */}
-      <Paper p="lg" radius="md" className="bg-[#1f2028] border border-[#2e303a]">
-        <Group justify="between" align="center">
-          <div>
-            <Group gap="sm">
-              <IconBuildingStore size={28} className="text-cyan-400" />
-              <Text size="xl" fw={800} className="text-white">ဆိုင်ခွဲများ စီမံခန့်ခွဲမှု (Branch Settings)</Text>
+      <Paper p="md" radius="md" className="min-w-0 bg-[#1f2028] border border-[#2e303a] sm:p-4">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <Group gap="sm" wrap="nowrap" align="center">
+              <IconBuildingStore size={28} className="shrink-0 text-cyan-400" />
+              <Text size="xl" fw={800} className="min-w-0 break-words text-white">ဆိုင်ခွဲများ စီမံခန့်ခွဲမှု (Branch Settings)</Text>
             </Group>
             <Text size="xs" c="dimmed" mt={4}>ဆိုင်ခွဲအသစ်များ ထည့်သွင်းခြင်းနှင့် ပြင်ဆင်ရန်</Text>
           </div>
 
           <Button
             color="cyan"
+            className="w-full shrink-0 sm:w-auto"
             leftSection={<IconPlus size={18} />}
             onClick={handleOpenCrate}
           >
             ဆိုင်ခွဲအသစ် ထည့်ရန်
           </Button>
-        </Group>
+        </div>
       </Paper>
 
       {/* Table Section */}
-      <Paper radius="md" className="flex flex-1 flex-col overflow-hidden bg-[#1f2028] border border-[#2e303a]">
-        <div className="flex-1 overflow-y-auto">
-          <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full" stickyHeader>
+      <Paper radius="md" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#1f2028] border border-[#2e303a]">
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+          <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full min-w-[760px]" stickyHeader>
             <Table.Thead className="bg-[#16171d] sticky top-0 z-10">
               <Table.Tr>
                 <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဆိုင်ခွဲ ကုဒ် (Code)</Table.Th>
@@ -274,8 +282,17 @@ export const BranchSettingsView = () => {
       <Modal opened={opened} onClose={handleCloseModal}
         title="ဆိုင်ခွဲအသစ် ထည့်သွင်းခြင်း"
         centered
-        styles={{ content: { backgroundColor: '#1f2028', color: '#fff' }, header: { backgroundColor: '#1f2028' } }}>
-        <Stack>
+        styles={{
+          content: {
+            backgroundColor: '#1f2028',
+            color: '#fff',
+            maxWidth: 'calc(100vw - 2rem)',
+            maxHeight: 'calc(100dvh - 2rem)',
+            overflowY: 'auto',
+          },
+          header: { backgroundColor: '#1f2028' },
+        }}>
+        <Stack gap="md">
           <TextInput
             label="ဆိုင်ခွဲအမည် (Branch Name)"
             placeholder="ဥပမာ - Branch A"
@@ -305,9 +322,21 @@ export const BranchSettingsView = () => {
             styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' } }}
           />
 
-          <Group justify="flex-end" mt="md">
-            <Button variant="default" onClick={() => setOpened(false)} className="bg-transparent text-gray-300 border-gray-600">မလုပ်တော့ပါ</Button>
-            <Button color="cyan" onClick={handleSubmitBranch} loading={createBranchMutation.isPending}>
+          <Group justify="flex-end" mt="md" className="flex-col-reverse sm:flex-row">
+            <Button
+              variant="default"
+              onClick={handleCloseModal}
+              className="w-full border-gray-600 bg-transparent text-gray-300 sm:w-auto"
+            >
+              မလုပ်တော့ပါ
+            </Button>
+            <Button
+              color="cyan"
+              onClick={handleSubmitBranch}
+              loading={isSaving}
+              disabled={isSaving}
+              className="w-full sm:w-auto"
+            >
               {editingId ? "ပြင်ဆင်မည်" : "ဖန်တီးမည်"}
             </Button>
           </Group>

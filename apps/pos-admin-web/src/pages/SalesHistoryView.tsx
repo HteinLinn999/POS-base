@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Table, Loader, Paper, Text, Group, Badge, Modal } from '@mantine/core';
 import { BarChart, DonutChart } from '@mantine/charts';
-import { IconReceipt2, IconCash, IconShoppingCart, IconChartBar } from '@tabler/icons-react';
+import { IconReceipt2 } from '@tabler/icons-react';
 import { api } from '../api/axios';
 
 interface SalesHistoryViewProps {
@@ -57,9 +57,9 @@ export const SalesHistoryView = ({
   const salesOrders = data?.sales || [];
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
-      {/* 🌟 Top Summary Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-hidden p-3 sm:gap-6 sm:p-4 lg:p-6">
+      {/* Top Summary Metric Cards */}
+      <div className="grid min-w-0 shrink-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
           <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
           <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
@@ -84,8 +84,8 @@ export const SalesHistoryView = ({
 
       {/* 🌟 Analytics Charts Section */}
       {salesOrders.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-          <Paper p="xl" radius="md" className={`${activeTheme.panel} border ${activeTheme.border} md:col-span-2`}>
+        <div className="grid min-w-0 shrink-0 grid-cols-1 gap-4 xl:grid-cols-3">
+          <Paper p="md" radius="md" className={`min-w-0 overflow-hidden ${activeTheme.panel} border ${activeTheme.border} sm:p-4 xl:col-span-2`}>
             <div className="mb-4">
               <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
               <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
@@ -105,7 +105,7 @@ export const SalesHistoryView = ({
             />
           </Paper>
 
-          <Paper p="xl" radius="md" className={`${activeTheme.panel} border ${activeTheme.border} flex flex-col`}>
+          <Paper p="md" radius="md" className={`flex min-w-0 flex-col overflow-hidden ${activeTheme.panel} border ${activeTheme.border} sm:p-4`}>
             <div className="mb-4">
               <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
               <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
@@ -127,14 +127,15 @@ export const SalesHistoryView = ({
       )}
 
       {/* 🌟 Sales Table Section */}
-      <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
-        <div className="p-4 border-b border-[#2e303a]">
+      <Paper className={`min-w-0 shrink-0 overflow-hidden ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
+        <div className="border-b border-[#2e303a] p-3 sm:p-4">
           <Group gap="sm">
             <IconReceipt2 size={24} className="text-cyan-400" />
             <Text size="lg" fw={700} className="text-white">အရောင်းမှတ်တမ်း စာရင်းဇယား</Text>
           </Group>
         </div>
-        <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+        <div className="min-w-0 overflow-x-auto">
+        <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full min-w-[900px]">
           <Table.Thead className={`${activeTheme.bg}`}>
             <Table.Tr>
               <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
@@ -173,22 +174,29 @@ export const SalesHistoryView = ({
             )}
           </Table.Tbody>
         </Table>
+        </div>
       </Paper>
 
-      {/* 🌟 Invoice Detail Modal (Extra Feature added for better UX) */}
+      {/* Invoice Detail Modal (Extra Feature added for better UX) */}
       <Modal
         opened={detailOpened}
         onClose={() => setDetailOpened(false)}
         title={<Text fw={700}>ဘောက်ချာအသေးစိတ် (Invoice Details)</Text>}
         centered
         styles={{
-          content: { backgroundColor: '#1f2028', color: '#fff' },
+          content: {
+            backgroundColor: '#1f2028',
+            color: '#fff',
+            maxWidth: 'calc(100vw - 2rem)',
+            maxHeight: 'calc(100dvh - 2rem)',
+            overflowY: 'auto',
+          },
           header: { backgroundColor: '#1f2028' },
         }}
       >
         {selectedOrder && (
-          <div className="flex flex-col gap-3">
-            <Text size="sm" className="text-gray-300">ဘောက်ချာနံပါတ်: <span className="font-bold text-white font-mono">{selectedOrder.invoiceNo}</span></Text>
+          <div className="flex min-w-0 flex-col gap-3">
+            <Text size="sm" className="break-words text-gray-300">ဘောက်ချာနံပါတ်: <span className="font-bold text-white font-mono">{selectedOrder.invoiceNo}</span></Text>
             <Text size="sm" className="text-gray-300">ရောင်းချချိန်: <span className="text-white">{new Date(selectedOrder.createdAt).toLocaleString()}</span></Text>
             <Text size="sm" className="text-gray-300">ငွေပေးချေမှု: <Badge color="blue">{selectedOrder.paymentMethod}</Badge></Text>
             
@@ -196,7 +204,7 @@ export const SalesHistoryView = ({
               <Text size="sm" fw={700} className="mb-2 text-cyan-400">ဝယ်ယူခဲ့သော ပစ္စည်းများ:</Text>
               {selectedOrder.items && selectedOrder.items.length > 0 ? (
                 selectedOrder.items.map((item: any, idx: number) => (
-                  <Group key={idx} justify="between" className="py-1 border-b border-[#2e303a]/50 text-xs">
+                  <Group key={idx} justify="between" wrap="nowrap" className="min-w-0 gap-2 py-1 border-b border-[#2e303a]/50 text-xs">
                     <Text className="text-white">{item.product?.name || 'Product'} (x{item.quantity})</Text>
                     <Text className="font-mono text-teal-400">{(item.price * item.quantity).toLocaleString()} MMK</Text>
                   </Group>

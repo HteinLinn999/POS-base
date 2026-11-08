@@ -33,7 +33,8 @@ import {
   IconPlus,
   IconTrash,
   IconBuildingStore,
-  IconAdjustments
+  IconAdjustments,
+  IconTruckDelivery
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
 import { useCartStore, type ActiveView } from './store/useCartStore';
@@ -43,6 +44,7 @@ import { BranchStockView } from './pages/BranchStockView';
 import { BranchSettingsView } from './pages/BranchSettingsView';
 import { SalesHistoryView } from './pages/SalesHistoryView';
 import { StockAdjustmentView } from './pages/StockAdjustmentView';
+import { GoodsReceivingView } from './pages/GoodsReceivingView';
 
 interface IThemeConfig {
   id: string;
@@ -63,10 +65,42 @@ const POS_THEMES: IThemeConfig[] = [
   { id: 'amethyst', name: 'Royal Amethyst 🍇', bg: 'bg-[#1e1b4b]', panel: 'bg-[#312e81]', border: 'border-[#4338ca]', primaryText: 'text-[#a78bfa]', badgeColor: 'grape', inputBg: '#312e81' }
 ];
 
+// Desktop POS workspace sizing. The center workspace always keeps at least
+// MAIN_MIN_WIDTH, so dragging either side panel cannot squeeze it indefinitely.
+const SIDEBAR_DEFAULT_WIDTH = 240;
+const SIDEBAR_MIN_WIDTH = 72;
+const SIDEBAR_MAX_WIDTH = 320;
+const SIDEBAR_LABEL_THRESHOLD = 220;
+const COUNTER_DEFAULT_WIDTH = 380;
+const COUNTER_MIN_WIDTH = 300;
+const COUNTER_MAX_WIDTH = 520;
+const MAIN_MIN_WIDTH = 360;
+const RESIZE_HANDLE_WIDTH = 10;
+const RESIZE_RESERVED_SPACE = MAIN_MIN_WIDTH + RESIZE_HANDLE_WIDTH * 2 + 4;
+
+type ResizeTarget = 'sidebar' | 'counter';
+
+interface ResizeDragState {
+  target: ResizeTarget;
+  pointerId: number;
+  startX: number;
+  startWidth: number;
+}
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), Math.max(min, max));
+
 function App() {
   const [barcode, setBarcode] = useState<string>('');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(SIDEBAR_DEFAULT_WIDTH);
+  const [counterWidth, setCounterWidth] = useState<number>(COUNTER_DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const resizeDragRef = useRef<ResizeDragState | null>(null);
   const [activeTheme, setActiveTheme] = useState<IThemeConfig>(POS_THEMES[0]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isSidebarExpanded = sidebarWidth >= SIDEBAR_LABEL_THRESHOLD;
 
   const [cashReceived, setCashReceived] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
@@ -89,8 +123,6 @@ function App() {
 
   const {
     cartItems,
-    isLeftNavOpen,
-    toggleLeftNav,
     addItemByBarcode,
     clearCart,
     submitCheckout,
@@ -265,90 +297,286 @@ function App() {
     }
   };
 
+  const getLayoutWidth = () =>
+    layoutRef.current?.getBoundingClientRect().width ??
+    (typeof window !== 'undefined' ? window.innerWidth : 1440);
+
+  const getMaxSidebarWidth = () =>
+    clamp(
+      getLayoutWidth() - counterWidth - RESIZE_RESERVED_SPACE,
+      SIDEBAR_MIN_WIDTH,
+      SIDEBAR_MAX_WIDTH,
+    );
+
+  const getMaxCounterWidth = () =>
+    clamp(
+      getLayoutWidth() - sidebarWidth - RESIZE_RESERVED_SPACE,
+      COUNTER_MIN_WIDTH,
+      COUNTER_MAX_WIDTH,
+    );
+
+  const startPanelResize = (
+    target: ResizeTarget,
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    // Only the primary mouse button or touch/pen contact can start a resize.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizeDragRef.current = {
+      target,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startWidth: target === 'sidebar' ? sidebarWidth : counterWidth,
+    };
+    setIsResizing(true);
+  };
+
+  const movePanelResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = resizeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+
+    if (drag.target === 'sidebar') {
+      // Moving the left divider right increases the sidebar width.
+      setSidebarWidth(clamp(
+        drag.startWidth + deltaX,
+        SIDEBAR_MIN_WIDTH,
+        getMaxSidebarWidth(),
+      ));
+    } else {
+      // Moving the right divider left increases the counter panel width.
+      setCounterWidth(clamp(
+        drag.startWidth - deltaX,
+        COUNTER_MIN_WIDTH,
+        getMaxCounterWidth(),
+      ));
+    }
+  };
+
+  const stopPanelResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (resizeDragRef.current?.pointerId !== event.pointerId) return;
+
+    resizeDragRef.current = null;
+    setIsResizing(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const handleResizeKeyDown = (
+    target: ResizeTarget,
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => {
+    const step = event.shiftKey ? 32 : 12;
+    const minWidth = target === 'sidebar' ? SIDEBAR_MIN_WIDTH : COUNTER_MIN_WIDTH;
+    const maxWidth = target === 'sidebar' ? getMaxSidebarWidth() : getMaxCounterWidth();
+    const currentWidth = target === 'sidebar' ? sidebarWidth : counterWidth;
+
+    let nextWidth = currentWidth;
+    if (event.key === 'Home') nextWidth = minWidth;
+    else if (event.key === 'End') nextWidth = maxWidth;
+    else if (target === 'sidebar' && event.key === 'ArrowLeft') nextWidth -= step;
+    else if (target === 'sidebar' && event.key === 'ArrowRight') nextWidth += step;
+    else if (target === 'counter' && event.key === 'ArrowLeft') nextWidth += step;
+    else if (target === 'counter' && event.key === 'ArrowRight') nextWidth -= step;
+    else return;
+
+    event.preventDefault();
+    const safeWidth = clamp(nextWidth, minWidth, maxWidth);
+    if (target === 'sidebar') setSidebarWidth(safeWidth);
+    else setCounterWidth(safeWidth);
+  };
+
+  // Prevent text selection and keep a consistent resize cursor while dragging.
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const previousUserSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.body.style.userSelect = previousUserSelect;
+      document.body.style.cursor = previousCursor;
+    };
+  }, [isResizing]);
+
   return (
-    <div className={`flex h-screen w-screen overflow-hidden 
-      ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}>
+    <div
+      ref={layoutRef}
+      style={{
+        '--sidebar-width': `${sidebarWidth}px`,
+        '--counter-width': `${counterWidth}px`,
+      } as React.CSSProperties}
+      className={`relative flex h-screen min-h-0 w-full min-w-0 flex-col overflow-hidden lg:flex-row
+        ${activeTheme.bg} text-[#f3f4f6] transition-colors duration-300`}
+    >
+      {isMobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Sidebar ပိတ်ရန်"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden print:hidden"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+
       <nav
-        className={`${activeTheme.panel} flex flex-col h-full shrink-0 
-             justify-between overflow-hidden border-r 
-        ${activeTheme.border} 
-        transition-all duration-300 ease-in-out print:hidden 
-        ${isLeftNavOpen ? 'w-[240px] px-4 py-6' : 'w-0 border-r-0 px-0 py-6'}`}
-        aria-hidden={!isLeftNavOpen}
+        id="primary-sidebar"
+        aria-label="Primary navigation"
+        className={`${activeTheme.panel} fixed inset-y-0 left-0 z-50 flex h-full w-[min(85vw,280px)] shrink-0
+          flex-col justify-between overflow-hidden border-r ${activeTheme.border} px-4 py-6
+          transform transition-transform duration-300 ease-in-out print:hidden
+          lg:relative lg:inset-auto lg:z-auto lg:visible lg:translate-x-0 lg:w-[var(--sidebar-width)]
+          ${isMobileNavOpen ? 'visible translate-x-0' : '-translate-x-full invisible lg:visible'}
+          ${isSidebarExpanded ? 'lg:px-4' : 'lg:px-2'}`}
       >
-        <div className="flex flex-col w-full gap-6">
-          <div className="flex h-10 w-full items-center 
-          justify-start gap-3 overflow-hidden px-2">
-            <IconReceipt size={32} className={activeTheme.primaryText} />
-            <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
+        <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-6">
+          <div className={`flex h-10 w-full shrink-0 items-center overflow-hidden px-2 ${isSidebarExpanded || isMobileNavOpen ? 'justify-start gap-3' : 'justify-center lg:gap-0'}`}>
+            <IconReceipt size={32} className={`${activeTheme.primaryText} shrink-0`} />
+            {(isSidebarExpanded || isMobileNavOpen) && (
+              <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
+            )}
           </div>
 
-          <div className="flex flex-col w-full  gap-2 ">
-            <div className=' overflow-x-auto '>
-              <div className=' overflow-y-auto max-h-96 '>
-                {[
-                  { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
-                  { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
-
-                  {
-                    id: 'branch-stocks', label: 'ဆိုင်ခွဲအလိုက် လက်ကျန်',
-                    icon: <IconBuildingStore size={20} />
-                  },
-                  { id: 'stock-adjustment', label: 'စာရင်းညှိနှိုင်းခြင်းနှင့် မှတ်တမ်း', icon: <IconAdjustments size={20} /> },
-
-                  { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
-
-                  { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },                  
-                  { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
-                  { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
-                  { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
-                ].map((menu) => (
-                  <Button
-                    key={menu.id}
-                    variant={activeView === menu.id ? 'filled' : 'subtle'}
-                    color={activeView === menu.id ? activeTheme.badgeColor : 'gray'}
-                    className="h-11 justify-start"
-                    size="md"
-                    leftSection={menu.icon}
-                    onClick={() => setActiveView(menu.id as ActiveView)}
-                  >
-                    <span className="text-base font-medium">{menu.label}</span>
-                  </Button>
-                ))}
-              </div>
+          <div className={`flex min-h-0 min-w-0 w-full flex-1 flex-col gap-1 overflow-x-auto overflow-y-auto border-2 pr-1 ${!isSidebarExpanded && !isMobileNavOpen ? 'lg:items-center lg:overflow-x-hidden' : ''}`}>
+            <div className={`flex flex-col gap-1 ${isSidebarExpanded || isMobileNavOpen ? 'w-max min-w-full' : 'w-full min-w-0'}`}>
+              {[
+                { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
+                { id: 'inventory', label: 'ပစ္စည်းအဝင်/အထွက်', icon: <IconBox size={20} /> },
+                { id: 'branch-stocks', label: 'ဆိုင်ခွဲအလိုက် လက်ကျန်', icon: <IconBuildingStore size={20} /> },
+                { id: 'stock-adjustment', label: 'စာရင်းညှိနှိုင်းခြင်းနှင့် မှတ်တမ်း', icon: <IconAdjustments size={20} /> },
+                { id: 'goods-receiving', label: 'ကုန်ပစ္စည်းအဝင် (PO/Receiving)', icon: <IconTruckDelivery size={20} /> },
+                { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
+                { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
+                { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
+                { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
+                { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
+              ].map((menu) => (
+                <Button
+                  key={menu.id}
+                  type="button"
+                  aria-label={menu.label}
+                  title={!isSidebarExpanded && !isMobileNavOpen ? menu.label : undefined}
+                  variant={activeView === menu.id ? 'filled' : 'subtle'}
+                  color={activeView === menu.id ? activeTheme.badgeColor : 'gray'}
+                  className={`h-11 shrink-0 ${isSidebarExpanded || isMobileNavOpen ? 'w-max min-w-full' : 'w-full min-w-0'}`}
+                  size="md"
+                  leftSection={menu.icon}
+                  onClick={() => {
+                    setActiveView(menu.id as ActiveView);
+                    setIsMobileNavOpen(false);
+                  }}
+                  styles={{
+                    root: {
+                      paddingInline: isSidebarExpanded || isMobileNavOpen ? undefined : 0,
+                    },
+                    inner: {
+                      justifyContent: isSidebarExpanded || isMobileNavOpen ? 'flex-start' : 'center',
+                    },
+                    section: {
+                      marginInlineEnd: isSidebarExpanded || isMobileNavOpen ? undefined : 0,
+                    },
+                    label: {
+                      display: isSidebarExpanded || isMobileNavOpen ? undefined : 'none',
+                      flex: isSidebarExpanded || isMobileNavOpen ? 1 : '0 0 auto',
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                    },
+                  }}
+                >
+                  {(isSidebarExpanded || isMobileNavOpen) && (
+                    <span className="whitespace-nowrap text-base font-medium">{menu.label}</span>
+                  )}
+                </Button>
+              ))}
             </div>
           </div>
         </div>
 
-        <div className="w-full bg-[#16171d] p-3 rounded-lg border border-[#2e303a] 
-          overflow-hidden cursor-pointer hover:bg-[#1f2028]" onClick={() => {
+        <div
+          className={`w-full shrink-0 cursor-pointer overflow-hidden rounded-lg border border-[#2e303a] bg-[#16171d] p-3 hover:bg-[#1f2028] ${!isSidebarExpanded && !isMobileNavOpen ? 'lg:flex lg:justify-center lg:p-2' : ''}`}
+          onClick={() => {
             setCurrentUser(prev => ({
               name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
               shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
             }));
             notifications.show({ title: 'Shift ဂျာစာရင်းပြောင်းလဲခြင်း', message: 'ဝန်ထမ်းအကောင့်နှင့် တာဝန်ကျချိန်အား ပြောင်းလဲလိုက်ပါသည်', color: 'blue' });
-          }}>
-          <Group gap="xs">
+          }}
+        >
+          <Group gap="xs" wrap="nowrap" justify={isSidebarExpanded || isMobileNavOpen ? 'flex-start' : 'center'}>
             <ActionIcon variant="light" color={activeTheme.badgeColor} size="md" radius="xl">
               <IconUser size={18} />
             </ActionIcon>
-            <div className="flex flex-col truncate">
-              <Text size="xs" className="text-white font-bold truncate">{currentUser.name}</Text>
-              <Text size="10px" className="text-gray-500 font-semibold tracking-wider">{currentUser.shift}</Text>
-            </div>
+            {(isSidebarExpanded || isMobileNavOpen) && (
+              <div className="flex min-w-0 flex-col truncate">
+                <Text size="xs" className="truncate font-bold text-white">{currentUser.name}</Text>
+                <Text size="10px" className="font-semibold tracking-wider text-gray-500">{currentUser.shift}</Text>
+              </div>
+            )}
           </Group>
         </div>
       </nav>
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden p-6 print:hidden">
-        <div className="mb-6 flex items-center gap-4">
-          <ActionIcon variant="light" color="cyan" size="xl" radius="md" onClick={toggleLeftNav} title="ဘယ်ဘက် Sidebar ဖွင့်/ပိတ်ရန်">
+      {activeView === 'counter' && (
+        <div
+          role="separator"
+          aria-label="Sidebar အကျယ်ပြောင်းရန်"
+          aria-orientation="vertical"
+          aria-valuemin={SIDEBAR_MIN_WIDTH}
+          aria-valuemax={getMaxSidebarWidth()}
+          aria-valuenow={Math.round(sidebarWidth)}
+          aria-valuetext={`${Math.round(sidebarWidth)} pixels`}
+          tabIndex={0}
+          title="ဖိဆွဲပြီး Sidebar အကျယ်ပြောင်းပါ။ Arrow keys ဖြင့်လည်း ပြောင်းနိုင်သည်။"
+          className="group hidden w-2.5 shrink-0 cursor-col-resize touch-none select-none items-center justify-center bg-transparent outline-none hover:bg-cyan-500/10 focus-visible:bg-cyan-500/10 lg:flex"
+          onPointerDown={(event) => startPanelResize('sidebar', event)}
+          onPointerMove={movePanelResize}
+          onPointerUp={stopPanelResize}
+          onPointerCancel={stopPanelResize}
+          onLostPointerCapture={() => {
+            resizeDragRef.current = null;
+            setIsResizing(false);
+          }}
+          onKeyDown={(event) => handleResizeKeyDown('sidebar', event)}
+          onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT_WIDTH)}
+        >
+          <span className="h-12 w-1 rounded-full bg-[#4b5563] transition-colors group-hover:bg-cyan-400 group-focus-visible:bg-cyan-400" />
+        </div>
+      )}
+
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-3 sm:p-4 lg:min-w-[360px] lg:p-6 print:hidden">
+        <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-4">
+          <ActionIcon
+            variant="light"
+            color="cyan"
+            size="xl"
+            radius="md"
+            onClick={() => {
+              if (window.matchMedia('(max-width: 1023px)').matches) {
+                setIsMobileNavOpen(true);
+              } else {
+                setSidebarWidth((currentWidth) =>
+                  currentWidth >= SIDEBAR_LABEL_THRESHOLD
+                    ? SIDEBAR_MIN_WIDTH
+                    : SIDEBAR_DEFAULT_WIDTH,
+                );
+              }
+            }}
+            title="Sidebar ဖွင့်/ပိတ်ရန်"
+            aria-label="Sidebar ဖွင့်/ပိတ်ရန်"
+            aria-controls="primary-sidebar"
+            aria-expanded={isSidebarExpanded}
+          >
             <IconMenu2 size={24} />
           </ActionIcon>
 
           {
             activeView === 'counter' && (
-              <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-2">
+              <form onSubmit={handleBarcodeSubmit} className="min-w-0 flex-1 basis-full sm:basis-auto">
                 <TextInput
                   ref={inputRef}
                   leftSection={<IconBarcode size={26} className="text-cyan-400 animate-pulse" />}
@@ -381,14 +609,15 @@ function App() {
             (activeView === 'branch-stocks' ||
               activeView === 'history' ||
               activeView === 'inventory' ||
-              activeView === 'counter'||
-              activeView === 'stock-adjustment') && (
+              activeView === 'counter' ||
+              activeView === 'stock-adjustment' ||
+              activeView === 'goods-receiving') && (
               <Select
                 placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
                 data={branchDropdownData}
                 value={currentBranchId}
                 onChange={(val) => {
-                //  console.log('currentBranchId :', val)
+                  //  console.log('currentBranchId :', val)
                   if (val) {
                     setCurrentBranchId(val);
                     notifications.show({
@@ -399,7 +628,8 @@ function App() {
                   }
                 }}
                 styles={{
-                  input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '220px' }
+                  root: { width: 'min(220px, 100%)' },
+                  input: { backgroundColor: activeTheme.inputBg, color: '#fff', border: '1px solid #2e303a', width: '100%' }
                 }}
               />
             )
@@ -427,8 +657,9 @@ function App() {
         </div>
 
         {activeView === 'counter' ? (
-          <Paper className={`flex-1 overflow-y-auto rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
-            <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+          <Paper className={`flex-1 min-h-0 min-w-0 overflow-hidden rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
+            <div className="h-full w-full overflow-auto">
+              <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full min-w-[900px]">
               <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
                 <Table.Tr>
                   <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
@@ -482,129 +713,132 @@ function App() {
                   ))
                 )}
               </Table.Tbody>
-            </Table>
+              </Table>
+            </div>
           </Paper>
         ) : activeView === 'branch-stocks' ? (
           <BranchStockView currentBranchId={currentBranchId} />
         ) : activeView === 'branch-settings' ? (
           <BranchSettingsView />
-        ) :activeView === 'stock-adjustment' ?(
-        <StockAdjustmentView currentBranchId={currentBranchId}/>          
-        ) :activeView === 'history' ? (
-            // <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
-            //   <div className="grid grid-cols-3 gap-4 shrink-0">
-            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
-            //       <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
-            //         {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
-            //       </Text>
-            //     </Paper>
+        ) : activeView === 'stock-adjustment' ? (
+          <StockAdjustmentView currentBranchId={currentBranchId} />
+        ) : activeView === 'goods-receiving' ? (
+          <GoodsReceivingView currentBranchId={currentBranchId} />
+        ) : activeView === 'history' ? (
+          // <div className="flex-1 min-h-0 flex flex-col gap-6 overflow-y-auto pr-2">
+          //   <div className="grid grid-cols-3 gap-4 shrink-0">
+          //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+          //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL REVENUE (စုစုပေါင်း အရောင်းရငွေ)</Text>
+          //       <Text size="28px" fw={900} className="text-[#10b981] mt-1 font-mono">
+          //         {salesOrders.reduce((sum, o) => sum + o.totalAmount, 0).toLocaleString()} <span className="text-xs font-bold">MMK</span>
+          //       </Text>
+          //     </Paper>
 
-            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
-            //       <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
-            //         {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
-            //       </Text>
-            //     </Paper>
+          //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+          //       <Text size="xs" color="gray" fw={700} className="tracking-wider">TOTAL INVOICES (စုစုပေါင်း ဘောက်ချာစောင်ရေ)</Text>
+          //       <Text size="28px" fw={900} className="text-[#00d8ff] mt-1 font-mono">
+          //         {salesOrders.length} <span className="text-xs font-bold">စောင်</span>
+          //       </Text>
+          //     </Paper>
 
-            //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
-            //       <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
-            //       <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
-            //         {salesOrders.length > 0
-            //           ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
-            //           : 0
-            //         } <span className="text-xs font-bold">MMK</span>
-            //       </Text>
-            //     </Paper>
-            //   </div>
+          //     <Paper p="md" radius="md" className={`${activeTheme.panel} border ${activeTheme.border}`}>
+          //       <Text size="xs" color="gray" fw={700} className="tracking-wider">AVERAGE BASKET (ပျမ်းမျှကျသင့်ငွေ)</Text>
+          //       <Text size="28px" fw={900} className="text-orange-400 mt-1 font-mono">
+          //         {salesOrders.length > 0
+          //           ? Math.round(salesOrders.reduce((sum, o) => sum + o.totalAmount, 0) / salesOrders.length).toLocaleString()
+          //           : 0
+          //         } <span className="text-xs font-bold">MMK</span>
+          //       </Text>
+          //     </Paper>
+          //   </div>
 
-            //   {salesOrders.length > 0 && (
-            //     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-            //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
-            //         <div className="mb-4">
-            //           <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
-            //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
-            //         </div>
-            //         <BarChart
-            //           h={220}
-            //           data={salesOrders.map((order) => ({
-            //             date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
-            //             "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
-            //           })).reverse()}
-            //           dataKey="date"
-            //           series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
-            //           tickLine="y"
-            //           gridAxis="x"
-            //           textColor="#9ca3af"
-            //           className="font-mono text-xs"
-            //         />
-            //       </Paper>
+          //   {salesOrders.length > 0 && (
+          //     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+          //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] md:col-span-2">
+          //         <div className="mb-4">
+          //           <Text size="sm" fw={800} className="text-white">DAILY SALES REVENUE (နေ့ရက်အလိုက် အရောင်းရငွေပြဇယား)</Text>
+          //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">PostgreSQL Daily Time-Series Revenue Volumes</Text>
+          //         </div>
+          //         <BarChart
+          //           h={220}
+          //           data={salesOrders.map((order) => ({
+          //             date: new Date(order.createdAt).toLocaleDateString('en-MM', { month: 'short', day: 'numeric' }),
+          //             "အရောင်းရငွေ (MMK)": Number(order.totalAmount)
+          //           })).reverse()}
+          //           dataKey="date"
+          //           series={[{ name: 'အရောင်းရငွေ (MMK)', color: 'cyan.6' }]}
+          //           tickLine="y"
+          //           gridAxis="x"
+          //           textColor="#9ca3af"
+          //           className="font-mono text-xs"
+          //         />
+          //       </Paper>
 
-            //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
-            //         <div className="mb-4">
-            //           <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
-            //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
-            //         </div>
-            //         <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
-            //           <DonutChart
-            //             size={140}
-            //             thickness={20}
-            //             data={[
-            //               { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
-            //               { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
-            //               { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
-            //             ]}
-            //             className="font-mono text-xs"
-            //           />
-            //         </div>
-            //       </Paper>
-            //     </div>
-            //   )}
+          //       <Paper p="xl" radius="md" className="bg-[#1f2028] border border-[#2e303a] flex flex-col">
+          //         <div className="mb-4">
+          //           <Text size="sm" fw={800} className="text-white">CATEGORY SALES SHARE (အုပ်စုအလိုက် အရောင်းဝေစု)</Text>
+          //           <Text size="11px" className="text-gray-500 font-mono mt-0.5">Live Database Category Performance</Text>
+          //         </div>
+          //         <div className="relative h-[180px] w-full flex items-center justify-center my-auto">
+          //           <DonutChart
+          //             size={140}
+          //             thickness={20}
+          //             data={[
+          //               { name: 'အချိုရည် / စားသောက်ကုန်', value: 60, color: 'cyan.6' },
+          //               { name: 'လတ်ဆတ်သောအသား', value: 25, color: 'teal.6' },
+          //               { name: 'မုန့်နှင့် သရေစာ', value: 15, color: 'orange.6' },
+          //             ]}
+          //             className="font-mono text-xs"
+          //           />
+          //         </div>
+          //       </Paper>
+          //     </div>
+          //   )}
 
-            //   <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
-            //     <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
-            //       <Table.Thead className={`${activeTheme.bg}`}>
-            //         <Table.Tr>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
-            //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
-            //         </Table.Tr>
-            //       </Table.Thead>
-            //       <Table.Tbody>
-            //         {salesOrders.length === 0 ? (
-            //           <Table.Tr>
-            //             <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
-            //               <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
-            //             </Table.Td>
-            //           </Table.Tr>
-            //         ) : (
-            //           salesOrders.map((order) => (
-            //             <Table.Tr
-            //               key={order.id}
-            //               className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
-            //               onClick={() => {
-            //                 setSelectedOrder(order);
-            //                 openDetail();
-            //               }}
-            //             >
-            //               <Table.Td className="font-mono text-white font-bold">{order.invoiceNo}</Table.Td>
-            //               <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
-            //               <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
-            //               <Table.Td className="font-mono text-gray-400">{Number(order.cashReceived || 0).toLocaleString()} MMK</Table.Td>
-            //               <Table.Td className="font-mono text-gray-400">{Number(order.changeGiven || 0).toLocaleString()} MMK</Table.Td>
-            //               <Table.Td className="font-semibold text-[#10b981] font-mono">{Number(order.totalAmount || 0).toLocaleString()} MMK</Table.Td>
-            //             </Table.Tr>
-            //           ))
-            //         )}
-            //       </Table.Tbody>
-            //     </Table>
-            //   </Paper>
-            // </div>
-          <SalesHistoryView 
-            currentBranchId={currentBranchId} 
+          //   <Paper className={`shrink-0 ${activeTheme.panel} border ${activeTheme.border} rounded-lg`} radius="md">
+          //     <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full">
+          //       <Table.Thead className={`${activeTheme.bg}`}>
+          //         <Table.Tr>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဘောက်ချာနံပါတ်</Table.Th>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">နေ့ရက် / အချိန်</Table.Th>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ငွေရှင်းစနစ်</Table.Th>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ဝယ်သူပေးငွေ</Table.Th>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">ပြန်အမ်းငွေ</Table.Th>
+          //           <Table.Th className="text-gray-400 font-semibold border-b border-gray-700">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+          //         </Table.Tr>
+          //       </Table.Thead>
+          //       <Table.Tbody>
+          //         {salesOrders.length === 0 ? (
+          //           <Table.Tr>
+          //             <Table.Td colSpan={6} className="text-center text-gray-400 py-20 border-none">
+          //               <Text size="lg">ဒေတာဘေ့စ်ထဲတွင် အရောင်းမှတ်တမ်းစာရင်း မရှိသေးပါဗျာ။</Text>
+          //             </Table.Td>
+          //           </Table.Tr>
+          //         ) : (
+          //           salesOrders.map((order) => (
+          //             <Table.Tr
+          //               key={order.id}
+          //               className={`border-b ${activeTheme.border} cursor-pointer hover:bg-[#16171d]`}
+          //               onClick={() => {
+          //                 setSelectedOrder(order);
+          //                 openDetail();
+          //               }}
+          //             >
+          //               <Table.Td className="font-mono text-white font-bold">{order.invoiceNo}</Table.Td>
+          //               <Table.Td className="text-gray-300">{new Date(order.createdAt).toLocaleString('en-MM')}</Table.Td>
+          //               <Table.Td><Badge variant="light" color="blue" size="md">{order.paymentMethod}</Badge></Table.Td>
+          //               <Table.Td className="font-mono text-gray-400">{Number(order.cashReceived || 0).toLocaleString()} MMK</Table.Td>
+          //               <Table.Td className="font-mono text-gray-400">{Number(order.changeGiven || 0).toLocaleString()} MMK</Table.Td>
+          //               <Table.Td className="font-semibold text-[#10b981] font-mono">{Number(order.totalAmount || 0).toLocaleString()} MMK</Table.Td>
+          //             </Table.Tr>
+          //           ))
+          //         )}
+          //       </Table.Tbody>
+          //     </Table>
+          //   </Paper>
+          // </div>
+          <SalesHistoryView
+            currentBranchId={currentBranchId}
             activeTheme={{
               panel: 'bg-[#1f2028]',
               border: 'border-[#2e303a]',
@@ -612,30 +846,30 @@ function App() {
             }}
           />
         ) : activeView === 'inventory' ? (
-          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+          <Paper p="xl" radius="md" className={`flex-1 min-h-0 min-w-0 overflow-auto ${activeTheme.panel} border ${activeTheme.border}`} style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
             <div className="mb-6">
               <Text size="xl" fw={800} className="text-white">NEW PRODUCT ENTRY (ကုန်ပစ္စည်းအသစ် ထည့်သွင်းခြင်းForm)</Text>
               <Text size="xs" className="text-gray-400 mt-1">လုပ်ငန်းခွင်သုံး စနစ်အတွင်းသို့ ကုန်ပစ္စည်းအချက်အလက်အသစ်များ အပြီးသတ် သတ်မှတ်သိမ်းဆည်းရန် ဖြစ်ပါသည်</Text>
             </div>
 
             <form onSubmit={handleProductSubmit} className="flex flex-col gap-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextInput label="ကုန်ပစ္စည်းအမည်" placeholder="ဥပမာ - Pepsi Can 330ml" required value={prodName} onChange={(e) => setProdName(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <TextInput label="ဘားကုဒ်နံပါတ် (Barcode)" placeholder="စကန်ဖတ်ပါ သို့မဟုတ် ရိုက်ထည့်ပါ..." required value={prodBarcode} onChange={(e) => setProdBarcode(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextInput label="SKU ကုဒ်နံပါတ်" placeholder="ဥပမာ - PEPSI-330" required value={prodSku} onChange={(e) => setProdSku(e.target.value)} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <Select label="ရောင်းချသည့်ပုံစံ (Sale Type)" data={['UNIT', 'WEIGHT']} value={prodSaleType} onChange={(val) => setProdSaleType(val || 'UNIT')} styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <NumberInput label="ရင်းဈေး (Cost Price)" placeholder="0 MMK" value={prodCost} onChange={(val) => setProdCost(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <NumberInput label="ရောင်းဈေး (Selling Price)" placeholder="0 MMK" value={prodPrice} onChange={(val) => setProdPrice(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
                 <NumberInput label="အစဦးလက်ကျန်အရေအတွက်" placeholder="0" value={prodStock} onChange={(val) => setProdStock(val || 0)} thousandSeparator="," styles={{ input: { backgroundColor: '#16171d', color: '#fff', border: '1px solid #2e303a', fontFamily: 'monospace' }, label: { color: '#9ca3af', fontWeight: 600, marginBottom: '4px' } }} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Select
                   label="တိုင်းတာသည့်ယူနစ် (Unit)"
                   placeholder="တိုင်းတာသည့် ယူနစ်ရွေးချယ်ပါ"
@@ -673,12 +907,12 @@ function App() {
             </form>
           </Paper>
         ) : activeView === 'crm' ? (
-          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+          <Paper p="xl" radius="md" className={`flex-1 min-h-0 min-w-0 overflow-auto ${activeTheme.panel} border ${activeTheme.border}`}>
             <div className="mb-6">
               <Text size="xl" fw={800} className="text-white">CUSTOMER RELATIONSHIP MANAGEMENT (CRM & Loyalty)</Text>
               <Text size="xs" className="text-gray-400 mt-1">ဖောက်သည်အသင်းဝင်များ၏ အချက်အလက်များနှင့် သစ္စာစောင့်သိမှုအမှတ်များကို စီမံခန့်ခွဲရန်</Text>
             </div>
-            <Table verticalSpacing="md" horizontalSpacing="lg">
+            <Table verticalSpacing="md" horizontalSpacing="lg" className="min-w-[640px]">
               <Table.Thead className={activeTheme.bg}>
                 <Table.Tr>
                   <Table.Th className="text-gray-400">ဖောက်သည်အမည်</Table.Th>
@@ -698,12 +932,12 @@ function App() {
             </Table>
           </Paper>
         ) : activeView === 'staff' ? (
-          <Paper p="xl" radius="md" className={`flex-1 overflow-y-auto ${activeTheme.panel} border ${activeTheme.border}`}>
+          <Paper p="xl" radius="md" className={`flex-1 min-h-0 min-w-0 overflow-auto ${activeTheme.panel} border ${activeTheme.border}`}>
             <div className="mb-6">
               <Text size="xl" fw={800} className="text-white">STAFF MANAGEMENT (ဝန်ထမ်းစီမံခန့်ခွဲမှုစနစ်)</Text>
               <Text size="xs" className="text-gray-400 mt-1">ကောင်တာဝန်ထမ်းများနှင့် မန်နေဂျာများ၏ တာဝန်ကျချိန်နှင့် အခြေအနေများကို စစ်ဆေးရန်</Text>
             </div>
-            <Table verticalSpacing="md" horizontalSpacing="lg">
+            <Table verticalSpacing="md" horizontalSpacing="lg" className="min-w-[720px]">
               <Table.Thead className={activeTheme.bg}>
                 <Table.Tr>
                   <Table.Th className="text-gray-400">အကောင့်အမည် (Username)</Table.Th>
@@ -737,15 +971,43 @@ function App() {
       </main>
 
       {activeView === 'counter' && (
-        <aside className={`${activeTheme.panel} flex flex-col h-full w-[380px] min-w-[350px] 
-        shrink-0  justify-between border-l ${activeTheme.border} p-6 print:hidden overflow-hidden`}>
+        <div
+          role="separator"
+          aria-label="Counter panel အကျယ်ပြောင်းရန်"
+          aria-orientation="vertical"
+          aria-valuemin={COUNTER_MIN_WIDTH}
+          aria-valuemax={getMaxCounterWidth()}
+          aria-valuenow={Math.round(counterWidth)}
+          aria-valuetext={`${Math.round(counterWidth)} pixels`}
+          tabIndex={0}
+          title="ဖိဆွဲပြီး Counter panel အကျယ်ပြောင်းပါ။ Arrow keys ဖြင့်လည်း ပြောင်းနိုင်သည်။"
+          className="group hidden w-2.5 shrink-0 cursor-col-resize touch-none select-none items-center justify-center bg-transparent outline-none hover:bg-cyan-500/10 focus-visible:bg-cyan-500/10 lg:flex"
+          onPointerDown={(event) => startPanelResize('counter', event)}
+          onPointerMove={movePanelResize}
+          onPointerUp={stopPanelResize}
+          onPointerCancel={stopPanelResize}
+          onLostPointerCapture={() => {
+            resizeDragRef.current = null;
+            setIsResizing(false);
+          }}
+          onKeyDown={(event) => handleResizeKeyDown('counter', event)}
+          onDoubleClick={() => setCounterWidth(COUNTER_DEFAULT_WIDTH)}
+        >
+          <span className="h-12 w-1 rounded-full bg-[#4b5563] transition-colors group-hover:bg-cyan-400 group-focus-visible:bg-cyan-400" />
+        </div>
+      )}
+
+      {activeView === 'counter' && (
+        <aside className={`${activeTheme.panel} flex h-[34vh] min-h-[220px] max-h-[360px] w-full shrink-0
+        flex-col justify-between overflow-hidden border-t ${activeTheme.border} p-3 print:hidden
+        sm:p-4 lg:h-full lg:min-h-0 lg:max-h-none lg:w-[var(--counter-width)] lg:min-w-0 lg:border-l lg:border-t-0 lg:p-6`}>
           {/* Upper Section */}
-          <div className={`flex-1 overflow-y-auto pr-1 flex flex-col gap-4 border-b ${activeTheme.border} pb-4`}>
+          <div className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-b ${activeTheme.border} pb-4 pr-1`}>
             <div>
               {/* Title Header */}
-              <div className=" flex items-center gap-3">
-                <IconReceipt size={32} className={activeTheme.primaryText} />
-                <h2 className="m-0 text-2xl font-bold text-white">City Mart Counter</h2>
+              <div className="flex min-w-0 items-center gap-3">
+                <IconReceipt size={32} className={`${activeTheme.primaryText} shrink-0`} />
+                <h2 className="m-0 min-w-0 truncate text-xl font-bold text-white xl:text-2xl">City Mart Counter</h2>
               </div>
               <p className="m-0 text-sm text-gray-400">Enterprise Modern Multi-Theme စနစ်</p>
             </div>
@@ -776,14 +1038,14 @@ function App() {
             </div>
 
             {/* Total Items Info */}
-            <div className="flex justify-between  items-center  text-base text-gray-300 px-1">
+            <div className="flex flex-wrap items-center justify-between gap-1 px-1 text-base text-gray-300">
               <span className="text-sm">စုစုပေါင်း ပစ္စည်းအမျိုးအစား:</span>
               <span className="font-bold text-white text-lg">{cartItems.length} မျိုး</span>
             </div>
 
             <div className={`flex flex-col rounded-lg border ${activeTheme.bg} ${activeTheme.border} p-4 text-center shadow-inner`}>
               <span className="text-sm font-semibold tracking-widest text-gray-400">TOTAL AMOUNT</span>
-              <span className="mt-1 font-mono text-3xl font-extrabold  text-[#10b981]">
+              <span className="mt-1 break-words font-mono text-2xl font-extrabold text-[#10b981] xl:text-3xl">
                 {grandTotal.toLocaleString()} <span className="text-lg font-bold">MMK</span>
               </span>
             </div>
@@ -815,12 +1077,12 @@ function App() {
           </div>
 
           {/* Bottom Checkout Button */}
-          <div className="pt-4">
+          <div className="shrink-0 pt-3 sm:pt-4">
             <Button
               color={activeTheme.badgeColor}
               size="xl"
               radius="md"
-              className="h-auto w-full py-4 text-xl font-bold shadow-lg"
+              className="h-auto w-full py-4 text-lg font-bold shadow-lg xl:text-xl"
               leftSection={<IconReceipt size={22} />}
               onClick={open}
               disabled={cartItems.length === 0}

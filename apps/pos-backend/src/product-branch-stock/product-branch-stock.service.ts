@@ -30,7 +30,7 @@ export class ProductBranchStockService {
         create: {
           productId: product.id,
           branchId: branchId,
-              quantity: product.stockQuantity, 
+          quantity: product.stockQuantity,
         },
       });
     }
@@ -183,6 +183,70 @@ export class ProductBranchStockService {
       },
       orderBy: { createdAt: 'desc' },
       take: 100, // နောက်ဆုံးမှတ်တမ်း ၁၀၀ စောင်
+    });
+  }
+
+  async bulkStockIn(data: {
+    branchId: string;
+    referenceNo: string;
+    supplierName?: string;
+    items: { productId: string; quantity: number; costPrice?: number }[];
+  }) {
+    const { branchId, referenceNo, supplierName, items } = data;
+
+    const branchExists = await this.prisma.branch.findUnique({
+      where: { id: branchId },
+    });
+
+    if (!branchExists) {
+      throw new BadRequestException(
+        `ပေးထားသော branchId (${branchId}) မှာ ဒေတာဘေ့စ်ထဲတွင် မရှိပါ။ ထိပ်ဆုံးဘားမှ ဆိုင်ခွဲကို အသစ်ပြန်ရွေးပေးပါ။`,
+      );
+    }
+
+    if (!items || items.length === 0) {
+      throw new BadRequestException('အဝင်လုပ်မည့် ကုန်ပစ္စည်းစာရင်း မပါရှိပါ');
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        let branchStock = await tx.productBranchStock.findFirst({
+          where: { branchId, productId: item.productId },
+        });
+
+        if (!branchStock) {
+          branchStock = await tx.productBranchStock.create({
+            data: { branchId, productId: item.productId, quantity: 0 },
+          });
+        }
+
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQuantity: { increment: item.quantity },
+            ...(item.costPrice ? { cost: item.costPrice } : {}),
+          },
+        });
+
+        await tx.productBranchStock.update({
+          where: { id: branchStock.id },
+          data: { quantity: branchStock.quantity + item.quantity },
+        });
+
+        await tx.stockHistory.create({
+          data: {
+            productId: item.productId,
+            quantity: item.quantity,
+            transactionType: 'STOCK_IN',
+            reason: `[PO/Ref: ${referenceNo}] Supplier: ${supplierName || 'General Supplier'}`,
+          },
+        });
+      }
+      return {
+        success: true,
+        message:
+          'ကုန်ပစ္စည်းအဝင်စာရင်း အစုလိုက်အပြုံလိုက် ထည့်သွင်းခြင်း ပြီးစီးပါပြီ',
+      };
     });
   }
 }

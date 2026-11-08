@@ -44,6 +44,7 @@ export type ActiveView =
   | "branch-stocks"
   | "branch-settings"
   | "stock-adjustment"
+  | "goods-receiving"
   | "settings";
     
 

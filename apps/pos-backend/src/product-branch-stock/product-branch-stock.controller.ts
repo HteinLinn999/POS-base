@@ -64,4 +64,18 @@ export class ProductBranchStockController {
   ) {
     return this.stockService.adjustStock(body);
   }
+
+  @Post('bulk-stock-in')
+  async bulkStockIn(
+    @Body()
+    body: {
+      branchId: string;
+      referenceNo: string;
+      supplierName?: string;
+      items: { productId: string; quantity: number; costPrice?: number }[];
+    },
+  ) {
+    console.log({ body });
+    return this.stockService.bulkStockIn(body);
+  }
 }
