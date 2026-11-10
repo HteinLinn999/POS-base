@@ -19,8 +19,9 @@ model User {
   password  String
   role      UserRole  @default(CASHIER)
   createdAt DateTime  @default(now())
-  orders    Order[]
-  sales     Sale[]
+  orders          Order[]
+  shiftReports    ShiftReport[] 
+  sales           Sale[]
 }
 
 // ၂။ ကုန်ပစ္စည်း အမျိုးအစား
@@ -117,8 +118,12 @@ model Branch {
   code      String               @unique // ဥပမာ - "BR-YGN-01"
   address   String?
   phone     String?  
-  
+
+shiftReports    ShiftReport[]          
   products  ProductBranchStock[] 
+
+
+   
   orders    Order[]
   sales     Sale[]               
   
@@ -189,3 +194,21 @@ model SaleItem {
   unitPrice Float
   createdAt DateTime @default(now())
 }
+
+model ShiftReport {
+  id            String   @id @default(uuid())
+  branchId      String
+  cashierId     String
+  openingCash   Decimal  @db.Decimal(10, 2) @default(0)
+  expectedCash  Decimal  @db.Decimal(10, 2) @default(0)
+  actualCash    Decimal  @db.Decimal(10, 2) @default(0)
+  difference    Decimal  @db.Decimal(10, 2) @default(0) // ပိုငွေ (+) / လိုငွေ (-)
+  totalSales    Decimal  @db.Decimal(10, 2) @default(0)
+  cashSales     Decimal  @db.Decimal(10, 2) @default(0)
+  transferSales Decimal  @db.Decimal(10, 2) @default(0)
+  status        String   @default("CLOSED") 
+  createdAt     DateTime @default(now())
+
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  cashier       User     @relation(fields: [cashierId], references: [id])
+} 

@@ -34,7 +34,8 @@ import {
   IconTrash,
   IconBuildingStore,
   IconAdjustments,
-  IconTruckDelivery
+  IconTruckDelivery,
+  IconReportMoney
 } from '@tabler/icons-react';
 import { SaleType } from '@pos/shared-types';
 import { useCartStore, type ActiveView } from './store/useCartStore';
@@ -45,6 +46,7 @@ import { BranchSettingsView } from './pages/BranchSettingsView';
 import { SalesHistoryView } from './pages/SalesHistoryView';
 import { StockAdjustmentView } from './pages/StockAdjustmentView';
 import { GoodsReceivingView } from './pages/GoodsReceivingView';
+import { ZReportView } from './pages/ZReportView';
 
 interface IThemeConfig {
   id: string;
@@ -157,7 +159,8 @@ function App() {
   const [memberModalOpened, { open: openMemberModal, close: closeMemberModal }] = useDisclosure(false);
   const [searchPhone, setSearchPhone] = useState<string>('');
 
-  const [currentUser, setCurrentUser] = useState<{ name: string; shift: string }>({
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; shift: string }>({
+    id: 'default-cashier-id',
     name: 'cashier_01',
     shift: 'MORNING SHIFT'
   });
@@ -435,14 +438,14 @@ function App() {
           ${isSidebarExpanded ? 'lg:px-4' : 'lg:px-2'}`}
       >
         <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-6">
-          <div className={`flex h-10 w-full shrink-0 items-center overflow-hidden px-2 ${isSidebarExpanded || isMobileNavOpen ? 'justify-start gap-3' : 'justify-center lg:gap-0'}`}>
+          <div className={`flex  w-full shrink-0 items-center overflow-hidden px-2 ${isSidebarExpanded || isMobileNavOpen ? 'justify-start gap-3' : 'justify-center lg:gap-0'}`}>
             <IconReceipt size={32} className={`${activeTheme.primaryText} shrink-0`} />
             {(isSidebarExpanded || isMobileNavOpen) && (
               <span className="whitespace-nowrap text-lg font-bold tracking-wide text-white">CITY MART</span>
             )}
           </div>
 
-          <div className={`flex min-h-0 min-w-0 w-full flex-1 flex-col gap-1 overflow-x-auto overflow-y-auto border-2 pr-1 ${!isSidebarExpanded && !isMobileNavOpen ? 'lg:items-center lg:overflow-x-hidden' : ''}`}>
+          <div className={`flex min-h-0 min-w-0 w-full flex-1 flex-col gap-1 overflow-x-auto overflow-y-auto  pr-1 ${!isSidebarExpanded && !isMobileNavOpen ? 'lg:items-center lg:overflow-x-hidden' : ''}`}>
             <div className={`flex flex-col gap-1 ${isSidebarExpanded || isMobileNavOpen ? 'w-max min-w-full' : 'w-full min-w-0'}`}>
               {[
                 { id: 'counter', label: 'အရောင်းကောင်တာ', icon: <IconShoppingCart size={20} /> },
@@ -452,6 +455,7 @@ function App() {
                 { id: 'goods-receiving', label: 'ကုန်ပစ္စည်းအဝင် (PO/Receiving)', icon: <IconTruckDelivery size={20} /> },
                 { id: 'branch-settings', label: 'ဆိုင်ခွဲများ စီမံရန်', icon: <IconBuildingStore size={20} /> },
                 { id: 'history', label: 'အရောင်းမှတ်တမ်း', icon: <IconHistory size={20} /> },
+                { id: 'z-report', label: 'နေ့ချုပ်နှင့် Shift ပိတ်ခြင်း (Z-Report)', icon: <IconReportMoney size={20} /> },
                 { id: 'crm', label: 'ဖောက်သည်အသင်းဝင် (CRM)', icon: <IconUsers size={20} /> },
                 { id: 'staff', label: 'ဝန်ထမ်းစီမံရန်', icon: <IconUser size={20} /> },
                 { id: 'settings', label: 'ဆိုင်ဆက်တင်များ', icon: <IconSettings size={20} /> },
@@ -501,6 +505,7 @@ function App() {
           className={`w-full shrink-0 cursor-pointer overflow-hidden rounded-lg border border-[#2e303a] bg-[#16171d] p-3 hover:bg-[#1f2028] ${!isSidebarExpanded && !isMobileNavOpen ? 'lg:flex lg:justify-center lg:p-2' : ''}`}
           onClick={() => {
             setCurrentUser(prev => ({
+              id: prev.name === 'cashier_01' ? 'admin-user-uuid-02' : 'cashier-user-uuid-01',
               name: prev.name === 'cashier_01' ? 'manager_admin' : 'cashier_01',
               shift: prev.name === 'cashier_01' ? 'NIGHT SHIFT' : 'MORNING SHIFT'
             }));
@@ -611,7 +616,8 @@ function App() {
               activeView === 'inventory' ||
               activeView === 'counter' ||
               activeView === 'stock-adjustment' ||
-              activeView === 'goods-receiving') && (
+              activeView === 'goods-receiving' ||
+              activeView === 'z-report') && (
               <Select
                 placeholder="ဆိုင်ခွဲရွေးချယ်ပါ"
                 data={branchDropdownData}
@@ -660,59 +666,59 @@ function App() {
           <Paper className={`flex-1 min-h-0 min-w-0 overflow-hidden rounded-lg border ${activeTheme.panel} ${activeTheme.border}`} radius="md">
             <div className="h-full w-full overflow-auto">
               <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover className="w-full min-w-[900px]">
-              <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
-                <Table.Tr>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ကုန်ပစ္စည်းအမည်</Table.Th>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဘားကုဒ်</Table.Th>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
-                  <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
-                  <Table.Th className="text-gray-400 text-center">လုပ်ဆောင်ချက်</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {cartItems.length === 0 ? (
+                <Table.Thead className={`${activeTheme.bg} sticky top-0 z-10`}>
                   <Table.Tr>
-                    <Table.Td colSpan={7} className="border-none py-20 text-center text-gray-400">
-                      <div className="flex flex-col items-center gap-3">
-                        <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
-                        <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
-                      </div>
-                    </Table.Td>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စဉ်</Table.Th>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ကုန်ပစ္စည်းအမည်</Table.Th>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဘားကုဒ်</Table.Th>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">ဈေးနှုန်း</Table.Th>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">အရေအတွက်</Table.Th>
+                    <Table.Th className="border-b border-gray-700 font-semibold text-gray-400">စုစုပေါင်း ကျသင့်ငွေ</Table.Th>
+                    <Table.Th className="text-gray-400 text-center">လုပ်ဆောင်ချက်</Table.Th>
                   </Table.Tr>
-                ) : (
-                  cartItems.map((item, index: number) => (
-                    <Table.Tr key={item.id} className={`border-b ${activeTheme.border}`}>
-                      <Table.Td>{index + 1}</Table.Td>
-                      <Table.Td className="font-medium text-white">{item.name}</Table.Td>
-                      <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
-                      <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
-                      <Table.Td>
-                        <Group justify="center" gap="xs">
-                          <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity - 1)}><IconMinus size={14} /></ActionIcon>
-                          <Badge variant="light" size="lg" color="cyan" className="font-mono font-bold">
-                            {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
-                          </Badge>
-                          <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity + 1)}><IconPlus size={14} /></ActionIcon>
-                        </Group>
-                        <Badge
-                          color={item.stockQuantity <= 10 ? 'red' : 'gray'}
-                          variant={item.stockQuantity <= 10 ? 'filled' : 'light'}
-                          size="sm"
-                          className={item.stockQuantity <= 10 ? 'animate-pulse font-bold' : ''}
-                        >
-                          {item.stockQuantity <= 10 ? `လက်ကျန်ပြတ်လုနီးပါး (${item.stockQuantity})` : `လက်ကျန်အဆင်ပြေ (${item.stockQuantity})`}
-                        </Badge>
-                      </Table.Td>
-                      <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
-                      <Table.Td className="text-center">
-                        <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)} title="ပယ်ဖျက်ရန်"><IconTrash size={18} /></ActionIcon>
+                </Table.Thead>
+                <Table.Tbody>
+                  {cartItems.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={7} className="border-none py-20 text-center text-gray-400">
+                        <div className="flex flex-col items-center gap-3">
+                          <IconShoppingCart size={48} className="animate-pulse text-gray-500" />
+                          <Text size="lg">ခြင်းတောင်းထဲတွင် ပစ္စည်းမရှိသေးပါ။ Barcode စကန်ဖတ်မှုကို စတင်ပါ။</Text>
+                        </div>
                       </Table.Td>
                     </Table.Tr>
-                  ))
-                )}
-              </Table.Tbody>
+                  ) : (
+                    cartItems.map((item, index: number) => (
+                      <Table.Tr key={item.id} className={`border-b ${activeTheme.border}`}>
+                        <Table.Td>{index + 1}</Table.Td>
+                        <Table.Td className="font-medium text-white">{item.name}</Table.Td>
+                        <Table.Td className="font-mono text-gray-300">{item.barcode}</Table.Td>
+                        <Table.Td>{item.price.toLocaleString()} MMK</Table.Td>
+                        <Table.Td>
+                          <Group justify="center" gap="xs">
+                            <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity - 1)}><IconMinus size={14} /></ActionIcon>
+                            <Badge variant="light" size="lg" color="cyan" className="font-mono font-bold">
+                              {item.quantity} {item.saleType === SaleType.WEIGHT ? 'Kg' : 'Pcs'}
+                            </Badge>
+                            <ActionIcon size="sm" color="gray" variant="subtle" onClick={() => updateQuantity(item.id, item.quantity + 1)}><IconPlus size={14} /></ActionIcon>
+                          </Group>
+                          <Badge
+                            color={item.stockQuantity <= 10 ? 'red' : 'gray'}
+                            variant={item.stockQuantity <= 10 ? 'filled' : 'light'}
+                            size="sm"
+                            className={item.stockQuantity <= 10 ? 'animate-pulse font-bold' : ''}
+                          >
+                            {item.stockQuantity <= 10 ? `လက်ကျန်ပြတ်လုနီးပါး (${item.stockQuantity})` : `လက်ကျန်အဆင်ပြေ (${item.stockQuantity})`}
+                          </Badge>
+                        </Table.Td>
+                        <Table.Td className="font-semibold text-[#10b981]">{item.total.toLocaleString()} MMK</Table.Td>
+                        <Table.Td className="text-center">
+                          <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)} title="ပယ်ဖျက်ရန်"><IconTrash size={18} /></ActionIcon>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))
+                  )}
+                </Table.Tbody>
               </Table>
             </div>
           </Paper>
@@ -962,12 +968,15 @@ function App() {
               </Table.Tbody>
             </Table>
           </Paper>
-        ) : (
-          <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
-            <IconBox size={64} className="text-gray-500 mb-4" />
-            <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
-          </Paper>
-        )}
+        ) : activeView === 'z-report' ? (
+          <ZReportView currentBranchId={currentBranchId} currentCashierId={currentUser.id || 'default-cashier'} />
+        ) :
+          (
+            <Paper className={`flex-1 flex flex-col items-center justify-center p-12 ${activeTheme.panel} border ${activeTheme.border}`} radius="md">
+              <IconBox size={64} className="text-gray-500 mb-4" />
+              <Text size="xl" className="text-white font-bold mb-2">City Mart {activeView} Module</Text>
+            </Paper>
+          )}
       </main>
 
       {activeView === 'counter' && (

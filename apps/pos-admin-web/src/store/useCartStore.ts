@@ -45,8 +45,8 @@ export type ActiveView =
   | "branch-settings"
   | "stock-adjustment"
   | "goods-receiving"
+  | "z-report"
   | "settings";
-    
 
 export interface ICategoryFromApi {
   id: string;

@@ -11,6 +11,7 @@ import { OrdersModule } from './orders/orders.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { ProductBranchStockModule } from './product-branch-stock/product-branch-stock.module.js';
 import { SalesModule } from './sales/sales.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { SalesModule } from './sales/sales.module.js';
     OrdersModule,
     ProductsModule,
     ProductBranchStockModule,
-    SalesModule
+    SalesModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [
